@@ -1,0 +1,885 @@
+<html lang="ja">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        <meta name="theme-color" content="#e0e0e0" />
+        <title>防音窓実験室 Noise Lab</title>
+        <style>
+            :root {
+                --bg: #e0e0e0;
+                --text: #444;
+                --muted: #7a7a7a;
+                --shadow-dark: #bebebe;
+                --shadow-light: #ffffff;
+                --accent: #3a86ff;
+                --ok: #33c27f;
+                --ng: #ff5a5f;
+                --card-radius: 18px;
+                --btn-radius: 16px;
+                --shadow-lg: 14px;
+                --shadow-md: 10px;
+                --shadow-sm: 6px;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                background: var(--bg);
+                color: var(--text);
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    "Hiragino Sans", "Noto Sans JP", "Helvetica Neue", Arial,
+                    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+                    sans-serif;
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
+
+            /* Neumorphism */
+            .nm-raised {
+                background: var(--bg);
+                border-radius: var(--card-radius);
+                box-shadow:
+                    var(--shadow-lg) var(--shadow-lg)
+                        calc(var(--shadow-lg) * 1.5) var(--shadow-dark),
+                    calc(var(--shadow-lg) * -1) calc(var(--shadow-lg) * -1)
+                        calc(var(--shadow-lg) * 1.5) var(--shadow-light);
+            }
+            .nm-inset {
+                background: var(--bg);
+                border-radius: var(--card-radius);
+                box-shadow:
+                    inset var(--shadow-md) var(--shadow-md)
+                        calc(var(--shadow-md) * 1.6) var(--shadow-dark),
+                    inset calc(var(--shadow-md) * -1)
+                        calc(var(--shadow-md) * -1) calc(var(--shadow-md) * 1.6)
+                        var(--shadow-light);
+            }
+            .chip {
+                font-size: 12px;
+                color: var(--muted);
+                padding: 7px 10px;
+                border-radius: 999px;
+                background: var(--bg);
+                box-shadow:
+                    6px 6px 12px var(--shadow-dark),
+                    -6px -6px 12px var(--shadow-light);
+                line-height: 1;
+            }
+
+            /* App frame */
+            .app {
+                min-height: 100svh;
+                max-width: 1200px;
+                margin: 0 auto;
+                display: grid;
+                grid-template-rows: auto auto 1fr auto;
+                gap: 14px;
+                padding: 16px 16px 10px;
+            }
+
+            /* Header: title + compact BT */
+            .topbar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .topbar h1 {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 700;
+                letter-spacing: 0.2px;
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+            }
+            .topbar .spacer {
+                flex: 1 1 auto;
+            }
+            .bt-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 8px;
+                border-radius: 999px;
+                background: var(--bg);
+                box-shadow:
+                    6px 6px 12px var(--shadow-dark),
+                    -6px -6px 12px var(--shadow-light);
+                color: var(--muted);
+                white-space: nowrap;
+                line-height: 1;
+            }
+            .bt-chip .dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                box-shadow:
+                    inset 2px 2px 4px rgba(0, 0, 0, 0.08),
+                    inset -2px -2px 4px rgba(255, 255, 255, 0.8),
+                    0 0 0 2px rgba(0, 0, 0, 0.03);
+            }
+            .bt-chip .dot.ok {
+                background: radial-gradient(
+                    circle at 30% 30%,
+                    #b8ffd8,
+                    #33c27f
+                );
+            }
+            .bt-chip .dot.ng {
+                background: radial-gradient(
+                    circle at 30% 30%,
+                    #ffd8d8,
+                    #ff5a5f
+                );
+            }
+            .bt-chip .lbl {
+                font-size: 12px;
+                font-weight: 600;
+                color: #444;
+            }
+            .bt-chip .btn {
+                appearance: none;
+                border: 0;
+                background: linear-gradient(145deg, #e7e7e7, #d9d9d9);
+                border-radius: 999px;
+                padding: 5px 8px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #333;
+                cursor: pointer;
+                box-shadow:
+                    var(--shadow-sm) var(--shadow-sm) var(--shadow-md)
+                        var(--shadow-dark),
+                    calc(var(--shadow-sm) * -1) calc(var(--shadow-sm) * -1)
+                        var(--shadow-md) var(--shadow-light);
+            }
+            .bt-chip .btn:active {
+                box-shadow:
+                    inset var(--shadow-sm) var(--shadow-sm)
+                        calc(var(--shadow-sm) * 1.4) var(--shadow-dark),
+                    inset calc(var(--shadow-sm) * -1)
+                        calc(var(--shadow-sm) * -1) calc(var(--shadow-sm) * 1.4)
+                        var(--shadow-light);
+            }
+            .bt-chip .btn:focus-visible {
+                outline: 2px solid rgba(58, 134, 255, 0.75);
+                outline-offset: 2px;
+            }
+
+            /* Metrics: single row (dB chip + subtle sparkline) */
+            .metrics {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 10px;
+                align-items: center;
+                padding: 8px 10px;
+            }
+            .db-chip {
+                display: grid;
+                gap: 4px;
+                padding: 10px 12px;
+                min-width: 200px;
+                justify-items: center;
+            }
+            .db-chip .label {
+                font-size: 11px;
+                color: var(--muted);
+            }
+            .db-chip .value {
+                font-variant-numeric: tabular-nums;
+                font-weight: 800;
+                font-size: 30px;
+                line-height: 1.1;
+                color: #3f3f3f;
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.7);
+            }
+            .spark {
+                padding: 8px 10px;
+                display: grid;
+                align-items: center;
+            }
+            canvas#spectrum {
+                width: 100%;
+                height: 56px;
+                display: block;
+                border-radius: 10px;
+                opacity: 0.7;
+            }
+            @media (max-width: 560px) {
+                .metrics {
+                    grid-template-columns: 1fr;
+                }
+                .db-chip {
+                    min-width: 0;
+                }
+            }
+            @media (min-width: 900px) and (orientation: landscape) {
+                canvas#spectrum {
+                    height: 68px;
+                }
+            }
+
+            /* Sound panel (main 7割)。影崩れ防止のため十分な内側余白を確保 */
+            .sound-panel {
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+            .sound-scroll {
+                overflow: auto;
+                padding: 16px; /* 外周に余白を設け、ボタンのbox-shadowが切れないようにする */
+            }
+            .grid {
+                display: grid;
+                gap: 14px;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                align-items: start;
+            }
+
+            /* Buttons: light raised -> inset when active. 影を軽量化し、崩れにくく */
+            .nm-btn {
+                appearance: none;
+                border: none;
+                width: 100%;
+                background: var(--bg);
+                border-radius: var(--btn-radius);
+                box-shadow:
+                    8px 8px 16px var(--shadow-dark),
+                    -8px -8px 16px var(--shadow-light);
+                padding: 14px;
+                cursor: pointer;
+                color: var(--text);
+                text-align: left;
+                transition: box-shadow 0.15s ease;
+                min-height: 76px;
+            }
+            .nm-btn.is-active,
+            .nm-btn:active {
+                box-shadow:
+                    inset 6px 6px 12px var(--shadow-dark),
+                    inset -6px -6px 12px var(--shadow-light);
+            }
+            .nm-btn:focus-visible {
+                outline: 2px solid rgba(58, 134, 255, 0.75);
+                outline-offset: 3px;
+                border-radius: 14px;
+            }
+
+            .sound-btn {
+                display: grid;
+                grid-template-columns: 36px 1fr;
+                gap: 12px;
+                align-items: center;
+            }
+            .sound-btn .icon {
+                width: 36px;
+                height: 36px;
+                display: grid;
+                place-items: center;
+                font-size: 26px;
+                line-height: 1;
+            }
+            .sound-btn .text {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                min-width: 0;
+            }
+            .sound-btn .title {
+                font-weight: 700;
+                line-height: 1.2;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .sound-btn .desc {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.25;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            footer.note {
+                font-size: 11px;
+                color: var(--muted);
+                text-align: center;
+                padding-bottom: 6px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .nm-btn {
+                    transition: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app">
+            <header class="topbar">
+                <span class="chip" aria-hidden="true">PWA</span>
+                <h1>防音窓実験室 Noise Lab</h1>
+                <div class="spacer"></div>
+                <div class="bt-chip" aria-label="Bluetoothスピーカー接続状態">
+                    <span id="btDot" class="dot ng" aria-hidden="true"></span>
+                    <span id="btLabel" class="lbl">未接続</span>
+                    <button
+                        id="connectBtn"
+                        class="btn"
+                        type="button"
+                        aria-label="スピーカーに接続"
+                    >
+                        接続
+                    </button>
+                </div>
+            </header>
+
+            <!-- dB + スパークライン（横並び、控えめ） -->
+            <section class="nm-raised metrics" aria-label="音量とスペクトラム">
+                <div class="nm-inset db-chip">
+                    <div class="label">相対音量 [dBFS]</div>
+                    <div id="dbValue" class="value">--.- dB</div>
+                </div>
+                <div class="nm-inset spark">
+                    <canvas
+                        id="spectrum"
+                        aria-label="スペクトラム（参考表示）"
+                        role="img"
+                    ></canvas>
+                </div>
+            </section>
+
+            <!-- メイン：再生ボタン（約7割） -->
+            <section
+                class="nm-raised sound-panel"
+                aria-label="生活音の再生ボタン"
+            >
+                <div class="sound-scroll">
+                    <div class="grid">
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="voice"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">💬</div>
+                            <div class="text">
+                                <div class="title">話し声</div>
+                                <div class="desc">
+                                    中域中心の断続的な声の感じ
+                                </div>
+                            </div>
+                        </button>
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="tv"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">📺</div>
+                            <div class="text">
+                                <div class="title">テレビ音</div>
+                                <div class="desc">広帯域のにぎやかな音</div>
+                            </div>
+                        </button>
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="construction"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">🚧</div>
+                            <div class="text">
+                                <div class="title">工事音</div>
+                                <div class="desc">低音の打撃＋騒音バースト</div>
+                            </div>
+                        </button>
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="laundry"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">🧺</div>
+                            <div class="text">
+                                <div class="title">洗濯機</div>
+                                <div class="desc">低周波モーター＋揺れ</div>
+                            </div>
+                        </button>
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="rain"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">🌧️</div>
+                            <div class="text">
+                                <div class="title">雨音</div>
+                                <div class="desc">高域成分のパラパラ音</div>
+                            </div>
+                        </button>
+                        <button
+                            class="nm-btn sound-btn"
+                            data-sound="traffic"
+                            aria-pressed="false"
+                        >
+                            <div class="icon" aria-hidden="true">🚗</div>
+                            <div class="text">
+                                <div class="title">交通騒音</div>
+                                <div class="desc">低〜中域の連続的なノイズ</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="note">
+                表示dBは相対値（dBFS）。実際の騒音計ではありません。OSのBluetooth設定はブラウザから直接開けません。
+            </footer>
+        </div>
+
+        <script>
+            // Audio + Analyzer
+            let audioCtx;
+            let masterGain, analyser, dest, mediaOutEl;
+            let currentSoundStop = null;
+
+            function ensureAudio() {
+                if (audioCtx) return;
+                audioCtx = new (window.AudioContext ||
+                    window.webkitAudioContext)();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.9;
+
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.85;
+
+                masterGain.connect(analyser);
+
+                dest = audioCtx.createMediaStreamDestination();
+                analyser.connect(dest);
+                mediaOutEl = new Audio();
+                mediaOutEl.autoplay = true;
+                mediaOutEl.srcObject = dest.stream;
+                mediaOutEl.play().catch(() => {});
+            }
+
+            function createNoiseBuffer(lenSec = 2) {
+                const sr = audioCtx.sampleRate;
+                const length = Math.max(1, Math.floor(sr * lenSec));
+                const buffer = audioCtx.createBuffer(1, length, sr);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < length; i++)
+                    data[i] = Math.random() * 2 - 1;
+                return buffer;
+            }
+            function makeBufferSource(buffer, loop = true) {
+                const src = audioCtx.createBufferSource();
+                src.buffer = buffer;
+                src.loop = loop;
+                return src;
+            }
+
+            // Procedural sounds
+            function buildVoice() {
+                const src = makeBufferSource(createNoiseBuffer(2));
+                const bp = audioCtx.createBiquadFilter();
+                bp.type = "bandpass";
+                bp.frequency.value = 1400;
+                bp.Q.value = 0.8;
+                const hp = audioCtx.createBiquadFilter();
+                hp.type = "highpass";
+                hp.frequency.value = 200;
+                const g = audioCtx.createGain();
+                g.gain.value = 0.0;
+                const lfo1 = audioCtx.createOscillator();
+                lfo1.frequency.value = 3.5;
+                const lfo1Gain = audioCtx.createGain();
+                lfo1Gain.gain.value = 0.25;
+                const lfo2 = audioCtx.createOscillator();
+                lfo2.frequency.value = 1.1;
+                const lfo2Gain = audioCtx.createGain();
+                lfo2Gain.gain.value = 0.25;
+                const dc = audioCtx.createConstantSource();
+                dc.offset.value = 0.35;
+                lfo1.connect(lfo1Gain).connect(g.gain);
+                lfo2.connect(lfo2Gain).connect(g.gain);
+                dc.connect(g.gain);
+                src.connect(bp).connect(hp).connect(g).connect(masterGain);
+                src.start();
+                lfo1.start();
+                lfo2.start();
+                dc.start();
+                return () => {
+                    try {
+                        src.stop();
+                        lfo1.stop();
+                        lfo2.stop();
+                        dc.stop();
+                    } catch (e) {}
+                    [
+                        src,
+                        bp,
+                        hp,
+                        g,
+                        lfo1,
+                        lfo1Gain,
+                        lfo2,
+                        lfo2Gain,
+                        dc,
+                    ].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+            function buildTV() {
+                const src = makeBufferSource(createNoiseBuffer(2));
+                const hp = audioCtx.createBiquadFilter();
+                hp.type = "highpass";
+                hp.frequency.value = 120;
+                const lp = audioCtx.createBiquadFilter();
+                lp.type = "lowpass";
+                lp.frequency.value = 6500;
+                const g = audioCtx.createGain();
+                g.gain.value = 0.6;
+                src.connect(hp).connect(lp).connect(g).connect(masterGain);
+                src.start();
+                return () => {
+                    try {
+                        src.stop();
+                    } catch (e) {}
+                    [src, hp, lp, g].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+            function buildConstruction() {
+                const out = audioCtx.createGain();
+                out.gain.value = 0.9;
+                const thumpGain = audioCtx.createGain();
+                thumpGain.gain.value = 0;
+                const thumpOsc = audioCtx.createOscillator();
+                thumpOsc.type = "sine";
+                thumpOsc.frequency.value = 65;
+                thumpOsc.connect(thumpGain).connect(out);
+                const nsrc = makeBufferSource(createNoiseBuffer(2));
+                const bp = audioCtx.createBiquadFilter();
+                bp.type = "bandpass";
+                bp.frequency.value = 700;
+                bp.Q.value = 1.2;
+                const ng = audioCtx.createGain();
+                ng.gain.value = 0.0;
+                nsrc.connect(bp).connect(ng).connect(out);
+                out.connect(masterGain);
+                thumpOsc.start();
+                nsrc.start();
+                let running = true;
+                function schedule() {
+                    if (!running) return;
+                    const now = audioCtx.currentTime;
+                    const interval = 0.8 + Math.random() * 0.9;
+                    thumpGain.gain.cancelScheduledValues(now);
+                    thumpGain.gain.setValueAtTime(0, now);
+                    thumpGain.gain.linearRampToValueAtTime(0.9, now + 0.03);
+                    thumpGain.gain.exponentialRampToValueAtTime(
+                        0.0001,
+                        now + 0.28,
+                    );
+                    ng.gain.cancelScheduledValues(now);
+                    ng.gain.setValueAtTime(0, now);
+                    ng.gain.linearRampToValueAtTime(0.7, now + 0.02);
+                    ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+                    setTimeout(schedule, interval * 1000);
+                }
+                schedule();
+                return () => {
+                    running = false;
+                    try {
+                        thumpOsc.stop();
+                        nsrc.stop();
+                    } catch (e) {}
+                    [out, thumpGain, thumpOsc, nsrc, bp, ng].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+            function buildLaundry() {
+                const osc = audioCtx.createOscillator();
+                osc.type = "sine";
+                osc.frequency.value = 90;
+                const g = audioCtx.createGain();
+                g.gain.value = 0.0;
+                const lfo = audioCtx.createOscillator();
+                lfo.frequency.value = 0.7;
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.value = 0.6;
+                lfo.connect(lfoGain).connect(g.gain);
+                osc.connect(g).connect(masterGain);
+                const nsrc = makeBufferSource(createNoiseBuffer(2));
+                const lp = audioCtx.createBiquadFilter();
+                lp.type = "lowpass";
+                lp.frequency.value = 300;
+                const ng = audioCtx.createGain();
+                ng.gain.value = 0.25;
+                nsrc.connect(lp).connect(ng).connect(masterGain);
+                osc.start();
+                lfo.start();
+                nsrc.start();
+                return () => {
+                    try {
+                        osc.stop();
+                        lfo.stop();
+                        nsrc.stop();
+                    } catch (e) {}
+                    [osc, g, lfo, lfoGain, nsrc, lp, ng].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+            function buildRain() {
+                const src = makeBufferSource(createNoiseBuffer(2));
+                const hp = audioCtx.createBiquadFilter();
+                hp.type = "highpass";
+                hp.frequency.value = 2000;
+                const g = audioCtx.createGain();
+                g.gain.value = 0.25;
+                const lfo = audioCtx.createOscillator();
+                lfo.frequency.value = 3.2;
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.value = 0.08;
+                lfo.connect(lfoGain).connect(g.gain);
+                src.connect(hp).connect(g).connect(masterGain);
+                src.start();
+                lfo.start();
+                return () => {
+                    try {
+                        src.stop();
+                        lfo.stop();
+                    } catch (e) {}
+                    [src, hp, g, lfo, lfoGain].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+            function buildTraffic() {
+                const src = makeBufferSource(createNoiseBuffer(2));
+                const lp = audioCtx.createBiquadFilter();
+                lp.type = "lowpass";
+                lp.frequency.value = 1200;
+                const hp = audioCtx.createBiquadFilter();
+                hp.type = "highpass";
+                hp.frequency.value = 60;
+                const g = audioCtx.createGain();
+                g.gain.value = 0.5;
+                src.connect(hp).connect(lp).connect(g).connect(masterGain);
+                src.start();
+                return () => {
+                    try {
+                        src.stop();
+                    } catch (e) {}
+                    [src, hp, lp, g].forEach((n) => {
+                        try {
+                            n.disconnect();
+                        } catch (e) {}
+                    });
+                };
+            }
+
+            const SOUND_BUILDERS = {
+                voice: buildVoice,
+                tv: buildTV,
+                construction: buildConstruction,
+                laundry: buildLaundry,
+                rain: buildRain,
+                traffic: buildTraffic,
+            };
+
+            function startSound(kind) {
+                ensureAudio();
+                audioCtx.resume();
+                stopSound();
+                const builder = SOUND_BUILDERS[kind];
+                if (!builder) return;
+                currentSoundStop = builder();
+            }
+            function stopSound() {
+                if (currentSoundStop) {
+                    currentSoundStop();
+                    currentSoundStop = null;
+                }
+            }
+
+            // UI wiring
+            const btns = Array.from(document.querySelectorAll(".sound-btn"));
+            btns.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const kind = btn.dataset.sound;
+                    const isActive = btn.classList.contains("is-active");
+                    btns.forEach((b) => {
+                        b.classList.remove("is-active");
+                        b.setAttribute("aria-pressed", "false");
+                    });
+                    if (isActive) stopSound();
+                    else {
+                        btn.classList.add("is-active");
+                        btn.setAttribute("aria-pressed", "true");
+                        startSound(kind);
+                    }
+                });
+            });
+
+            // dB + subtle sparkline
+            const dbEl = document.getElementById("dbValue");
+            const canvas = document.getElementById("spectrum");
+            const ctx2d = canvas.getContext("2d");
+
+            function resizeCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = Math.floor(rect.width * dpr);
+                canvas.height = Math.floor(rect.height * dpr);
+                ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            new ResizeObserver(resizeCanvas).observe(canvas);
+            resizeCanvas();
+
+            function draw() {
+                requestAnimationFrame(draw);
+                const rect = canvas.getBoundingClientRect();
+                ctx2d.clearRect(0, 0, rect.width, rect.height);
+                if (!analyser) return;
+
+                // dBFS
+                const timeArr = new Float32Array(analyser.fftSize);
+                analyser.getFloatTimeDomainData(timeArr);
+                let sum = 0;
+                for (let i = 0; i < timeArr.length; i++)
+                    sum += timeArr[i] * timeArr[i];
+                const rms = Math.sqrt(sum / timeArr.length) || 1e-9;
+                const dbfs = 20 * Math.log10(rms);
+                dbEl.textContent = `${dbfs.toFixed(1)} dB`;
+
+                // Sparkline（控えめ）
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                analyser.getByteFrequencyData(dataArray);
+
+                const w = rect.width,
+                    h = rect.height;
+                const points = 60;
+                const step = Math.max(1, Math.floor(bufferLength / points));
+
+                const vals = [];
+                let prev = 0;
+                for (let i = 0; i < points; i++) {
+                    let acc = 0;
+                    for (let j = 0; j < step; j++)
+                        acc += dataArray[i * step + j] || 0;
+                    let v = acc / step / 255;
+                    v = prev * 0.65 + v * 0.35;
+                    prev = v; // smooth
+                    vals.push(v);
+                }
+
+                const padX = 6,
+                    padY = 6;
+                const innerW = w - padX * 2,
+                    innerH = h - padY * 2;
+                const toX = (i) => padX + (i / (points - 1)) * innerW;
+                const toY = (v) => padY + (1 - v) * innerH * 0.85;
+
+                // area
+                ctx2d.beginPath();
+                ctx2d.moveTo(toX(0), toY(vals[0]));
+                for (let i = 1; i < points; i++)
+                    ctx2d.lineTo(toX(i), toY(vals[i]));
+                ctx2d.lineTo(toX(points - 1), h - padY);
+                ctx2d.lineTo(toX(0), h - padY);
+                ctx2d.closePath();
+                ctx2d.fillStyle = "rgba(58,134,255,0.10)";
+                ctx2d.fill();
+
+                // line
+                ctx2d.beginPath();
+                ctx2d.moveTo(toX(0), toY(vals[0]));
+                for (let i = 1; i < points; i++)
+                    ctx2d.lineTo(toX(i), toY(vals[i]));
+                ctx2d.strokeStyle = "rgba(58,134,255,0.32)";
+                ctx2d.lineWidth = 1.5;
+                ctx2d.stroke();
+            }
+            draw();
+
+            // Output device selection
+            const connectBtn = document.getElementById("connectBtn");
+            const btDot = document.getElementById("btDot");
+            const btLabel = document.getElementById("btLabel");
+
+            async function connectSpeaker() {
+                ensureAudio();
+                try {
+                    if (
+                        navigator.mediaDevices &&
+                        "selectAudioOutput" in navigator.mediaDevices
+                    ) {
+                        const device =
+                            await navigator.mediaDevices.selectAudioOutput();
+                        if (device && device.deviceId && mediaOutEl.setSinkId) {
+                            await mediaOutEl.setSinkId(device.deviceId);
+                            setBtStatus(
+                                true,
+                                device.label || "出力デバイス選択済み",
+                            );
+                            return;
+                        }
+                    }
+                    if (mediaOutEl.setSinkId) {
+                        await mediaOutEl.setSinkId("default");
+                        setBtStatus(true, "既定の出力に設定しました");
+                    } else {
+                        setBtStatus(false, "出力先選択は非対応");
+                        alert(
+                            "このブラウザでは出力デバイスの直接選択に未対応です。OSのBluetooth設定またはブラウザの音声出力設定からスピーカーを選択してください。",
+                        );
+                    }
+                } catch (e) {
+                    console.error(e);
+                    setBtStatus(false, "接続に失敗");
+                    alert(
+                        "出力デバイスの選択に失敗しました。権限や接続状態をご確認ください。",
+                    );
+                }
+            }
+            function setBtStatus(connected, tip) {
+                btDot.classList.toggle("ok", connected);
+                btDot.classList.toggle("ng", !connected);
+                btLabel.textContent = connected ? "接続済み" : "未接続";
+                const chip = btLabel.closest(".bt-chip");
+                if (chip)
+                    chip.title =
+                        tip ||
+                        (connected
+                            ? "音声出力がスピーカーに設定されました"
+                            : "対応ブラウザで出力デバイスを選択できます");
+            }
+            connectBtn.addEventListener("click", connectSpeaker);
+
+            window.addEventListener("pagehide", () => {
+                stopSound();
+            });
+        </script>
+    </body>
+</html>
