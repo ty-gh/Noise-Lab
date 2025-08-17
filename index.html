@@ -238,8 +238,8 @@
             }
             .grid {
                 display: grid;
-                gap: 14px;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 align-items: start;
             }
 
@@ -253,12 +253,13 @@
                 box-shadow:
                     8px 8px 16px var(--shadow-dark),
                     -8px -8px 16px var(--shadow-light);
-                padding: 14px;
+                padding: 16px;
                 cursor: pointer;
                 color: var(--text);
-                text-align: left;
+                text-align: center;
                 transition: box-shadow 0.15s ease;
-                min-height: 76px;
+                aspect-ratio: 1;
+                min-height: 0;
             }
             .nm-btn.is-active,
             .nm-btn:active {
@@ -273,36 +274,92 @@
             }
 
             .sound-btn {
-                display: grid;
-                grid-template-columns: 36px 1fr;
-                gap: 12px;
+                display: flex;
+                flex-direction: column;
                 align-items: center;
+                justify-content: center;
+                text-align: center;
+                gap: 6px;
             }
             .sound-btn .icon {
-                width: 36px;
-                height: 36px;
+                width: 48px;
+                height: 48px;
                 display: grid;
                 place-items: center;
-                font-size: 26px;
+                font-size: 32px;
                 line-height: 1;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+                border-radius: 8px;
+                background-color: transparent;
+                opacity: 0.85;
+                transition: opacity 0.2s ease;
+            }
+            
+            .nm-btn:hover .icon,
+            .nm-btn.is-active .icon {
+                opacity: 1;
+            }
+            
+            /* 各音声種別のアイコン画像 */
+            .sound-btn .icon[data-sound="voice"] {
+                background-image: url('images/voice.png');
+            }
+            .sound-btn .icon[data-sound="tv"] {
+                background-image: url('images/tv.png');
+            }
+            .sound-btn .icon[data-sound="construction"] {
+                background-image: url('images/construction.png');
+            }
+            .sound-btn .icon[data-sound="laundry"] {
+                background-image: url('images/laundry.png');
+            }
+            .sound-btn .icon[data-sound="rain"] {
+                background-image: url('images/rain.png');
+            }
+            .sound-btn .icon[data-sound="traffic"] {
+                background-image: url('images/traffic.png');
+            }
+            
+            /* 画像読み込み失敗時のフォールバック（絵文字） */
+            .sound-btn .icon[data-sound="voice"]:after {
+                content: "💬";
+            }
+            .sound-btn .icon[data-sound="tv"]:after {
+                content: "📺";
+            }
+            .sound-btn .icon[data-sound="construction"]:after {
+                content: "🚧";
+            }
+            .sound-btn .icon[data-sound="laundry"]:after {
+                content: "🧺";
+            }
+            .sound-btn .icon[data-sound="rain"]:after {
+                content: "🌧️";
+            }
+            .sound-btn .icon[data-sound="traffic"]:after {
+                content: "🚗";
+            }
+            
+            /* 画像が正常に読み込まれた場合は絵文字を非表示 */
+            .sound-btn .icon[data-sound]:after {
+                position: absolute;
+                font-size: 28px;
+                opacity: 0;
+                z-index: -1;
+                transition: opacity 0.2s ease;
             }
             .sound-btn .text {
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
+                justify-content: center;
                 min-width: 0;
             }
             .sound-btn .title {
                 font-weight: 700;
                 line-height: 1.2;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .sound-btn .desc {
-                font-size: 12px;
-                color: var(--muted);
-                line-height: 1.25;
+                font-size: 14px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -317,6 +374,34 @@
             @media (prefers-reduced-motion: reduce) {
                 .nm-btn {
                     transition: none;
+                }
+                .sound-btn .icon {
+                    transition: none;
+                }
+                .sound-btn .icon[data-sound]:after {
+                    transition: none;
+                }
+            }
+            
+            /* モバイル向けアイコンサイズ調整 */
+            @media (max-width: 480px) {
+                .grid {
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 12px;
+                }
+                .nm-btn {
+                    padding: 12px;
+                }
+                .sound-btn .icon {
+                    width: 40px;
+                    height: 40px;
+                    background-size: contain;
+                }
+                .sound-btn .icon[data-sound]:after {
+                    font-size: 24px;
+                }
+                .sound-btn .title {
+                    font-size: 12px;
                 }
             }
         </style>
@@ -368,12 +453,9 @@
                             data-sound="voice"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">💬</div>
+                            <div class="icon" data-sound="voice" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">話し声</div>
-                                <div class="desc">
-                                    中域中心の断続的な声の感じ
-                                </div>
                             </div>
                         </button>
                         <button
@@ -381,10 +463,9 @@
                             data-sound="tv"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">📺</div>
+                            <div class="icon" data-sound="tv" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">テレビ音</div>
-                                <div class="desc">広帯域のにぎやかな音</div>
                             </div>
                         </button>
                         <button
@@ -392,10 +473,9 @@
                             data-sound="construction"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">🚧</div>
+                            <div class="icon" data-sound="construction" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">工事音</div>
-                                <div class="desc">低音の打撃＋騒音バースト</div>
                             </div>
                         </button>
                         <button
@@ -403,10 +483,9 @@
                             data-sound="laundry"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">🧺</div>
+                            <div class="icon" data-sound="laundry" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">洗濯機</div>
-                                <div class="desc">低周波モーター＋揺れ</div>
                             </div>
                         </button>
                         <button
@@ -414,10 +493,9 @@
                             data-sound="rain"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">🌧️</div>
+                            <div class="icon" data-sound="rain" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">雨音</div>
-                                <div class="desc">高域成分のパラパラ音</div>
                             </div>
                         </button>
                         <button
@@ -425,10 +503,9 @@
                             data-sound="traffic"
                             aria-pressed="false"
                         >
-                            <div class="icon" aria-hidden="true">🚗</div>
+                            <div class="icon" data-sound="traffic" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">交通騒音</div>
-                                <div class="desc">低〜中域の連続的なノイズ</div>
                             </div>
                         </button>
                     </div>
@@ -445,6 +522,7 @@
             let audioCtx;
             let masterGain, analyser, dest, mediaOutEl;
             let currentSoundStop = null;
+            let audioBuffers = {};
 
             function ensureAudio() {
                 if (audioCtx) return;
@@ -467,15 +545,27 @@
                 mediaOutEl.play().catch(() => {});
             }
 
-            function createNoiseBuffer(lenSec = 2) {
-                const sr = audioCtx.sampleRate;
-                const length = Math.max(1, Math.floor(sr * lenSec));
-                const buffer = audioCtx.createBuffer(1, length, sr);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < length; i++)
-                    data[i] = Math.random() * 2 - 1;
-                return buffer;
+            async function loadAudioFile(url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    return await audioCtx.decodeAudioData(arrayBuffer);
+                } catch (error) {
+                    console.error(`音声ファイルの読み込みに失敗: ${url}`, error);
+                    return null;
+                }
             }
+
+            async function preloadAudioFiles() {
+                const sounds = ['voice', 'tv', 'construction', 'laundry', 'rain', 'traffic'];
+                const promises = sounds.map(async (sound) => {
+                    const buffer = await loadAudioFile(`sounds/${sound}.mp3`);
+                    if (buffer) audioBuffers[sound] = buffer;
+                });
+                await Promise.all(promises);
+            }
+
             function makeBufferSource(buffer, loop = true) {
                 const src = audioCtx.createBufferSource();
                 src.buffer = buffer;
@@ -483,236 +573,61 @@
                 return src;
             }
 
-            // Procedural sounds
-            function buildVoice() {
-                const src = makeBufferSource(createNoiseBuffer(2));
-                const bp = audioCtx.createBiquadFilter();
-                bp.type = "bandpass";
-                bp.frequency.value = 1400;
-                bp.Q.value = 0.8;
-                const hp = audioCtx.createBiquadFilter();
-                hp.type = "highpass";
-                hp.frequency.value = 200;
-                const g = audioCtx.createGain();
-                g.gain.value = 0.0;
-                const lfo1 = audioCtx.createOscillator();
-                lfo1.frequency.value = 3.5;
-                const lfo1Gain = audioCtx.createGain();
-                lfo1Gain.gain.value = 0.25;
-                const lfo2 = audioCtx.createOscillator();
-                lfo2.frequency.value = 1.1;
-                const lfo2Gain = audioCtx.createGain();
-                lfo2Gain.gain.value = 0.25;
-                const dc = audioCtx.createConstantSource();
-                dc.offset.value = 0.35;
-                lfo1.connect(lfo1Gain).connect(g.gain);
-                lfo2.connect(lfo2Gain).connect(g.gain);
-                dc.connect(g.gain);
-                src.connect(bp).connect(hp).connect(g).connect(masterGain);
-                src.start();
-                lfo1.start();
-                lfo2.start();
-                dc.start();
-                return () => {
-                    try {
-                        src.stop();
-                        lfo1.stop();
-                        lfo2.stop();
-                        dc.stop();
-                    } catch (e) {}
-                    [
-                        src,
-                        bp,
-                        hp,
-                        g,
-                        lfo1,
-                        lfo1Gain,
-                        lfo2,
-                        lfo2Gain,
-                        dc,
-                    ].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
-                };
-            }
-            function buildTV() {
-                const src = makeBufferSource(createNoiseBuffer(2));
-                const hp = audioCtx.createBiquadFilter();
-                hp.type = "highpass";
-                hp.frequency.value = 120;
-                const lp = audioCtx.createBiquadFilter();
-                lp.type = "lowpass";
-                lp.frequency.value = 6500;
-                const g = audioCtx.createGain();
-                g.gain.value = 0.6;
-                src.connect(hp).connect(lp).connect(g).connect(masterGain);
-                src.start();
-                return () => {
-                    try {
-                        src.stop();
-                    } catch (e) {}
-                    [src, hp, lp, g].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
-                };
-            }
-            function buildConstruction() {
-                const out = audioCtx.createGain();
-                out.gain.value = 0.9;
-                const thumpGain = audioCtx.createGain();
-                thumpGain.gain.value = 0;
-                const thumpOsc = audioCtx.createOscillator();
-                thumpOsc.type = "sine";
-                thumpOsc.frequency.value = 65;
-                thumpOsc.connect(thumpGain).connect(out);
-                const nsrc = makeBufferSource(createNoiseBuffer(2));
-                const bp = audioCtx.createBiquadFilter();
-                bp.type = "bandpass";
-                bp.frequency.value = 700;
-                bp.Q.value = 1.2;
-                const ng = audioCtx.createGain();
-                ng.gain.value = 0.0;
-                nsrc.connect(bp).connect(ng).connect(out);
-                out.connect(masterGain);
-                thumpOsc.start();
-                nsrc.start();
-                let running = true;
-                function schedule() {
-                    if (!running) return;
-                    const now = audioCtx.currentTime;
-                    const interval = 0.8 + Math.random() * 0.9;
-                    thumpGain.gain.cancelScheduledValues(now);
-                    thumpGain.gain.setValueAtTime(0, now);
-                    thumpGain.gain.linearRampToValueAtTime(0.9, now + 0.03);
-                    thumpGain.gain.exponentialRampToValueAtTime(
-                        0.0001,
-                        now + 0.28,
-                    );
-                    ng.gain.cancelScheduledValues(now);
-                    ng.gain.setValueAtTime(0, now);
-                    ng.gain.linearRampToValueAtTime(0.7, now + 0.02);
-                    ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-                    setTimeout(schedule, interval * 1000);
+            // Audio file playback
+            function buildFromAudioFile(soundName) {
+                const buffer = audioBuffers[soundName];
+                if (!buffer) {
+                    console.error(`音声ファイルが見つかりません: ${soundName}`);
+                    return () => {};
                 }
-                schedule();
-                return () => {
-                    running = false;
-                    try {
-                        thumpOsc.stop();
-                        nsrc.stop();
-                    } catch (e) {}
-                    [out, thumpGain, thumpOsc, nsrc, bp, ng].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
-                };
-            }
-            function buildLaundry() {
-                const osc = audioCtx.createOscillator();
-                osc.type = "sine";
-                osc.frequency.value = 90;
-                const g = audioCtx.createGain();
-                g.gain.value = 0.0;
-                const lfo = audioCtx.createOscillator();
-                lfo.frequency.value = 0.7;
-                const lfoGain = audioCtx.createGain();
-                lfoGain.gain.value = 0.6;
-                lfo.connect(lfoGain).connect(g.gain);
-                osc.connect(g).connect(masterGain);
-                const nsrc = makeBufferSource(createNoiseBuffer(2));
-                const lp = audioCtx.createBiquadFilter();
-                lp.type = "lowpass";
-                lp.frequency.value = 300;
-                const ng = audioCtx.createGain();
-                ng.gain.value = 0.25;
-                nsrc.connect(lp).connect(ng).connect(masterGain);
-                osc.start();
-                lfo.start();
-                nsrc.start();
-                return () => {
-                    try {
-                        osc.stop();
-                        lfo.stop();
-                        nsrc.stop();
-                    } catch (e) {}
-                    [osc, g, lfo, lfoGain, nsrc, lp, ng].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
-                };
-            }
-            function buildRain() {
-                const src = makeBufferSource(createNoiseBuffer(2));
-                const hp = audioCtx.createBiquadFilter();
-                hp.type = "highpass";
-                hp.frequency.value = 2000;
-                const g = audioCtx.createGain();
-                g.gain.value = 0.25;
-                const lfo = audioCtx.createOscillator();
-                lfo.frequency.value = 3.2;
-                const lfoGain = audioCtx.createGain();
-                lfoGain.gain.value = 0.08;
-                lfo.connect(lfoGain).connect(g.gain);
-                src.connect(hp).connect(g).connect(masterGain);
+                
+                const src = makeBufferSource(buffer, true);
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.7;
+                
+                src.connect(gain).connect(masterGain);
                 src.start();
-                lfo.start();
+                
                 return () => {
                     try {
                         src.stop();
-                        lfo.stop();
+                        src.disconnect();
+                        gain.disconnect();
                     } catch (e) {}
-                    [src, hp, g, lfo, lfoGain].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
-                };
-            }
-            function buildTraffic() {
-                const src = makeBufferSource(createNoiseBuffer(2));
-                const lp = audioCtx.createBiquadFilter();
-                lp.type = "lowpass";
-                lp.frequency.value = 1200;
-                const hp = audioCtx.createBiquadFilter();
-                hp.type = "highpass";
-                hp.frequency.value = 60;
-                const g = audioCtx.createGain();
-                g.gain.value = 0.5;
-                src.connect(hp).connect(lp).connect(g).connect(masterGain);
-                src.start();
-                return () => {
-                    try {
-                        src.stop();
-                    } catch (e) {}
-                    [src, hp, lp, g].forEach((n) => {
-                        try {
-                            n.disconnect();
-                        } catch (e) {}
-                    });
                 };
             }
 
             const SOUND_BUILDERS = {
-                voice: buildVoice,
-                tv: buildTV,
-                construction: buildConstruction,
-                laundry: buildLaundry,
-                rain: buildRain,
-                traffic: buildTraffic,
+                voice: () => buildFromAudioFile('voice'),
+                tv: () => buildFromAudioFile('tv'),
+                construction: () => buildFromAudioFile('construction'),
+                laundry: () => buildFromAudioFile('laundry'),
+                rain: () => buildFromAudioFile('rain'),
+                traffic: () => buildFromAudioFile('traffic'),
             };
 
-            function startSound(kind) {
+            async function startSound(kind) {
                 ensureAudio();
                 audioCtx.resume();
                 stopSound();
+                
+                // 音声ファイルがまだ読み込まれていない場合は読み込む
+                if (Object.keys(audioBuffers).length === 0) {
+                    await preloadAudioFiles();
+                }
+                
                 const builder = SOUND_BUILDERS[kind];
-                if (!builder) return;
+                if (!builder) {
+                    console.error(`不明な音声種別: ${kind}`);
+                    return;
+                }
+                
+                // 音声ファイルが見つからない場合の警告
+                if (!audioBuffers[kind]) {
+                    alert(`音声ファイル "${kind}.mp3" が見つかりません。soundsフォルダにファイルが存在することを確認してください。`);
+                    return;
+                }
+                
                 currentSoundStop = builder();
             }
             function stopSound() {
@@ -725,18 +640,26 @@
             // UI wiring
             const btns = Array.from(document.querySelectorAll(".sound-btn"));
             btns.forEach((btn) => {
-                btn.addEventListener("click", () => {
+                btn.addEventListener("click", async () => {
                     const kind = btn.dataset.sound;
                     const isActive = btn.classList.contains("is-active");
                     btns.forEach((b) => {
                         b.classList.remove("is-active");
                         b.setAttribute("aria-pressed", "false");
                     });
-                    if (isActive) stopSound();
-                    else {
+                    if (isActive) {
+                        stopSound();
+                    } else {
                         btn.classList.add("is-active");
                         btn.setAttribute("aria-pressed", "true");
-                        startSound(kind);
+                        try {
+                            await startSound(kind);
+                        } catch (error) {
+                            console.error('音声再生エラー:', error);
+                            btn.classList.remove("is-active");
+                            btn.setAttribute("aria-pressed", "false");
+                            alert('音声の再生に失敗しました。ブラウザのコンソールで詳細を確認してください。');
+                        }
                     }
                 });
             });
@@ -879,6 +802,14 @@
 
             window.addEventListener("pagehide", () => {
                 stopSound();
+            });
+
+            // ページ読み込み時に音声ファイルをプリロード
+            window.addEventListener("DOMContentLoaded", () => {
+                // バックグラウンドで音声ファイルを読み込む（エラーは無視）
+                preloadAudioFiles().catch(error => {
+                    console.warn('音声ファイルのプリロードに一部失敗しました:', error);
+                });
             });
         </script>
     </body>
