@@ -231,17 +231,57 @@
                 display: flex;
                 flex-direction: column;
                 min-height: 0;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
             }
-            .sound-scroll {
-                overflow: auto;
-                padding: 16px; /* 外周に余白を設け、ボタンのbox-shadowが切れないようにする */
+            .sound-carousel-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                perspective: 1200px;
+                position: relative; /* For indicators positioning */
             }
-            .grid {
-                display: grid;
-                gap: 16px;
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-                align-items: start;
+            .carousel-indicators {
+                position: absolute;
+                bottom: 10px;
+                display: flex;
+                gap: 8px;
             }
+            .indicator-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background-color: rgba(0, 0, 0, 0.15);
+                transition: background-color 0.3s, transform 0.3s;
+            }
+            .indicator-dot.is-active {
+                background-color: var(--accent);
+                transform: scale(1.2);
+            }
+            .sound-carousel {
+                position: relative;
+                width: 200px;
+                height: 200px;
+                /* transform-style: preserve-3d; */ /* 削除 */
+                transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+            }
+            .carousel-item {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                /* backface-visibility: hidden; */ /* 削除 */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.4s, z-index 0.4s; /* 追加 */
+            }
+            
 
             /* Buttons: light raised -> inset when active. 影を軽量化し、崩れにくく */
             .nm-btn {
@@ -257,9 +297,14 @@
                 cursor: pointer;
                 color: var(--text);
                 text-align: center;
-                transition: box-shadow 0.15s ease;
+                transition: box-shadow 0.4s ease; /* transitionを更新 */
                 aspect-ratio: 1;
                 min-height: 0;
+            }
+            .nm-btn.is-front {
+                box-shadow: 
+                    12px 12px 24px var(--shadow-dark),
+                    -12px -12px 24px var(--shadow-light);
             }
             .nm-btn.is-active,
             .nm-btn:active {
@@ -446,10 +491,10 @@
                 class="nm-raised sound-panel"
                 aria-label="生活音の再生ボタン"
             >
-                <div class="sound-scroll">
-                    <div class="grid">
+                <div class="sound-carousel-container">
+                    <div class="sound-carousel">
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="voice"
                             aria-pressed="false"
                         >
@@ -459,7 +504,7 @@
                             </div>
                         </button>
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="tv"
                             aria-pressed="false"
                         >
@@ -469,7 +514,7 @@
                             </div>
                         </button>
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="construction"
                             aria-pressed="false"
                         >
@@ -479,7 +524,7 @@
                             </div>
                         </button>
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="laundry"
                             aria-pressed="false"
                         >
@@ -489,7 +534,7 @@
                             </div>
                         </button>
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="rain"
                             aria-pressed="false"
                         >
@@ -499,7 +544,7 @@
                             </div>
                         </button>
                         <button
-                            class="nm-btn sound-btn"
+                            class="nm-btn sound-btn carousel-item"
                             data-sound="traffic"
                             aria-pressed="false"
                         >
@@ -509,6 +554,7 @@
                             </div>
                         </button>
                     </div>
+                    <div class="carousel-indicators"></div>
                 </div>
             </section>
 
@@ -573,7 +619,6 @@
                 return src;
             }
 
-            // Audio file playback
             function buildFromAudioFile(soundName) {
                 const buffer = audioBuffers[soundName];
                 if (!buffer) {
@@ -611,7 +656,6 @@
                 audioCtx.resume();
                 stopSound();
                 
-                // 音声ファイルがまだ読み込まれていない場合は読み込む
                 if (Object.keys(audioBuffers).length === 0) {
                     await preloadAudioFiles();
                 }
@@ -622,7 +666,6 @@
                     return;
                 }
                 
-                // 音声ファイルが見つからない場合の警告
                 if (!audioBuffers[kind]) {
                     alert(`音声ファイル "${kind}.mp3" が見つかりません。soundsフォルダにファイルが存在することを確認してください。`);
                     return;
@@ -630,6 +673,7 @@
                 
                 currentSoundStop = builder();
             }
+
             function stopSound() {
                 if (currentSoundStop) {
                     currentSoundStop();
@@ -637,13 +681,202 @@
                 }
             }
 
-            // UI wiring
-            const btns = Array.from(document.querySelectorAll(".sound-btn"));
-            btns.forEach((btn) => {
-                btn.addEventListener("click", async () => {
+            // --- Carousel UI & Interaction Logic ---
+            const carouselContainer = document.querySelector('.sound-carousel-container');
+            const indicatorsContainer = document.querySelector('.carousel-indicators');
+            const items = Array.from(document.querySelectorAll('.carousel-item'));
+            const itemCount = items.length;
+            const yAngleStep = 360 / itemCount;
+            const radius = 280;
+            let indicatorDots = [];
+            
+            let currentIndex = 0;
+            let yAngle = 0;
+            let xAngle = 0;
+
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let lastX = 0, lastY = 0;
+            let velocityX = 0, velocityY = 0;
+            let lastTimestamp = 0;
+            let animationFrameId = null;
+            let dragDirection = null;
+            let isDirectionLocked = false;
+
+            function setupIndicators() {
+                for (let i = 0; i < itemCount; i++) {
+                    const dot = document.createElement('div');
+                    dot.classList.add('indicator-dot');
+                    indicatorsContainer.appendChild(dot);
+                    indicatorDots.push(dot);
+                }
+            }
+
+            function updateIndicators(index) {
+                const modIndex = (index % itemCount + itemCount) % itemCount;
+                indicatorDots.forEach((dot, i) => {
+                    dot.classList.toggle('is-active', i === modIndex);
+                });
+            }
+
+            function updateItemsPosition(y, x) {
+                const yRad = y * (Math.PI / 180);
+                const xRad = x * (Math.PI / 180);
+                const cosY = Math.cos(yRad), sinY = Math.sin(yRad);
+                const cosX = Math.cos(xRad), sinX = Math.sin(xRad);
+
+                items.forEach((item, i) => {
+                    const itemInitialAngle = i * yAngleStep;
+                    const itemRad = itemInitialAngle * (Math.PI / 180);
+                    
+                    const x0 = Math.sin(itemRad) * radius;
+                    const z0 = Math.cos(itemRad) * radius;
+                    const y0 = 0;
+
+                    const x1 = x0 * cosY + z0 * sinY;
+                    const z1 = -x0 * sinY + z0 * cosY;
+                    const y1 = y0;
+
+                    const y2 = y1 * cosX - z1 * sinX;
+                    const z2 = y1 * sinX + z1 * cosX;
+                    const x2 = x1;
+
+                    const scale = (z2 + radius) / (2 * radius) * 0.5 + 0.5;
+
+                    item.style.transform = `translateX(${x2}px) translateY(${y2}px) translateZ(${z2}px) scale(${scale})`;
+                    item.style.zIndex = Math.round(z2);
+
+                    const totalAngle = itemInitialAngle + y;
+                    const normalizedAngle = (totalAngle % 360 + 360) % 360;
+                    const isFront = normalizedAngle < yAngleStep / 2 || normalizedAngle > 360 - yAngleStep / 2;
+                    item.classList.toggle('is-front', isFront);
+                });
+            }
+
+            function snapToClosest() {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                const closestIndex = Math.round(-yAngle / yAngleStep);
+                currentIndex = closestIndex;
+                updateIndicators(currentIndex); // Update indicators on snap
+                const targetAngle = -currentIndex * yAngleStep;
+
+                const animateSnap = () => {
+                    const deltaY = targetAngle - yAngle;
+                    xAngle *= 0.92; // Gently return tilt to zero
+
+                    if (Math.abs(deltaY) < 0.1 && Math.abs(xAngle) < 0.1) {
+                        yAngle = targetAngle;
+                        xAngle = 0;
+                        updateItemsPosition(yAngle, xAngle);
+                    } else {
+                        yAngle += deltaY * 0.15;
+                        animationFrameId = requestAnimationFrame(animateSnap);
+                        updateItemsPosition(yAngle, xAngle);
+                    }
+                };
+                animationFrameId = requestAnimationFrame(animateSnap);
+            }
+
+            function onDragStart(e) {
+                isDragging = true;
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+                startY = e.touches ? e.touches[0].clientY : e.clientY;
+                lastX = startX; lastY = startY;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                items.forEach(item => item.style.transition = 'none');
+                lastTimestamp = performance.now();
+                velocityX = 0; velocityY = 0;
+                dragDirection = null; isDirectionLocked = false;
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                const y = e.touches ? e.touches[0].clientY : e.clientY;
+                const deltaX = x - lastX;
+                const deltaY = y - lastY;
+                const timestamp = performance.now();
+                const deltaTime = timestamp - lastTimestamp;
+
+                if (!isDirectionLocked) {
+                    const totalDeltaX = Math.abs(x - startX);
+                    const totalDeltaY = Math.abs(y - startY);
+                    if (totalDeltaX > 5 || totalDeltaY > 5) {
+                        dragDirection = totalDeltaX > totalDeltaY ? 'horizontal' : 'vertical';
+                        isDirectionLocked = true;
+                    }
+                }
+
+                if (deltaTime > 0) {
+                    if (dragDirection === 'horizontal') {
+                        velocityX = 0.7 * (deltaX / deltaTime) + 0.3 * velocityX;
+                        const dragAngleUpdate = (deltaX / carouselContainer.offsetWidth) * 120;
+                        yAngle += dragAngleUpdate;
+                    } else if (dragDirection === 'vertical') {
+                        velocityY = 0.7 * (deltaY / deltaTime) + 0.3 * velocityY;
+                        const tiltAngleUpdate = (deltaY / carouselContainer.offsetHeight) * -90;
+                        xAngle += tiltAngleUpdate;
+                        xAngle = Math.max(-45, Math.min(45, xAngle)); // Limit tilt
+                    }
+                }
+                
+                updateItemsPosition(yAngle, xAngle);
+                lastX = x; lastY = y;
+                lastTimestamp = timestamp;
+            }
+
+            function onDragEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                animationFrameId = requestAnimationFrame(inertiaLoop);
+            }
+
+            function inertiaLoop() {
+                let keepAnimating = false;
+                if (dragDirection === 'horizontal') {
+                    yAngle += velocityX * 1.5;
+                    velocityX *= 0.95;
+                    if (Math.abs(velocityX) > 0.05) keepAnimating = true;
+                } else if (dragDirection === 'vertical') {
+                    xAngle += velocityY * 1.5;
+                    xAngle = Math.max(-45, Math.min(45, xAngle));
+                    velocityY *= 0.95;
+                    if (Math.abs(velocityY) > 0.05) keepAnimating = true;
+                }
+
+                if (keepAnimating) {
+                    updateItemsPosition(yAngle, xAngle);
+                    animationFrameId = requestAnimationFrame(inertiaLoop);
+                } else {
+                    snapToClosest();
+                }
+            }
+
+            // Event Listeners
+            carouselContainer.addEventListener('mousedown', onDragStart);
+            carouselContainer.addEventListener('mousemove', onDragMove);
+            carouselContainer.addEventListener('mouseup', onDragEnd);
+            carouselContainer.addEventListener('mouseleave', onDragEnd);
+            carouselContainer.addEventListener('touchstart', onDragStart, { passive: true });
+            carouselContainer.addEventListener('touchmove', onDragMove);
+            carouselContainer.addEventListener('touchend', onDragEnd);
+
+            items.forEach((btn) => {
+                btn.addEventListener("click", async (e) => {
+                    const dragDistance = Math.sqrt(Math.pow(lastX - startX, 2) + Math.pow(lastY - startY, 2));
+                    if (dragDistance > 10) {
+                        e.stopPropagation(); return;
+                    }
+                    if (!btn.classList.contains('is-front')) {
+                        const itemIndex = items.indexOf(btn);
+                        currentIndex = Math.round(-yAngle / yAngleStep);
+                        currentIndex = itemIndex - (currentIndex % itemCount + itemCount) % itemCount;
+                        snapToClosest();
+                        return;
+                    }
                     const kind = btn.dataset.sound;
                     const isActive = btn.classList.contains("is-active");
-                    btns.forEach((b) => {
+                    items.forEach((b) => {
                         b.classList.remove("is-active");
                         b.setAttribute("aria-pressed", "false");
                     });
@@ -652,9 +885,7 @@
                     } else {
                         btn.classList.add("is-active");
                         btn.setAttribute("aria-pressed", "true");
-                        try {
-                            await startSound(kind);
-                        } catch (error) {
+                        try { await startSound(kind); } catch (error) {
                             console.error('音声再生エラー:', error);
                             btn.classList.remove("is-active");
                             btn.setAttribute("aria-pressed", "false");
@@ -663,6 +894,11 @@
                     }
                 });
             });
+
+            // Initial setup
+            setupIndicators();
+            updateIndicators(0);
+            updateItemsPosition(0, 0);
 
             // dB + subtle sparkline
             const dbEl = document.getElementById("dbValue");
@@ -684,8 +920,6 @@
                 const rect = canvas.getBoundingClientRect();
                 ctx2d.clearRect(0, 0, rect.width, rect.height);
                 if (!analyser) return;
-
-                // dBFS
                 const timeArr = new Float32Array(analyser.fftSize);
                 analyser.getFloatTimeDomainData(timeArr);
                 let sum = 0;
@@ -694,17 +928,12 @@
                 const rms = Math.sqrt(sum / timeArr.length) || 1e-9;
                 const dbfs = 20 * Math.log10(rms);
                 dbEl.textContent = `${dbfs.toFixed(1)} dB`;
-
-                // Sparkline（控えめ）
                 const bufferLength = analyser.frequencyBinCount;
                 const dataArray = new Uint8Array(bufferLength);
                 analyser.getByteFrequencyData(dataArray);
-
-                const w = rect.width,
-                    h = rect.height;
+                const w = rect.width, h = rect.height;
                 const points = 60;
                 const step = Math.max(1, Math.floor(bufferLength / points));
-
                 const vals = [];
                 let prev = 0;
                 for (let i = 0; i < points; i++) {
@@ -713,18 +942,13 @@
                         acc += dataArray[i * step + j] || 0;
                     let v = acc / step / 255;
                     v = prev * 0.65 + v * 0.35;
-                    prev = v; // smooth
+                    prev = v;
                     vals.push(v);
                 }
-
-                const padX = 6,
-                    padY = 6;
-                const innerW = w - padX * 2,
-                    innerH = h - padY * 2;
+                const padX = 6, padY = 6;
+                const innerW = w - padX * 2, innerH = h - padY * 2;
                 const toX = (i) => padX + (i / (points - 1)) * innerW;
                 const toY = (v) => padY + (1 - v) * innerH * 0.85;
-
-                // area
                 ctx2d.beginPath();
                 ctx2d.moveTo(toX(0), toY(vals[0]));
                 for (let i = 1; i < points; i++)
@@ -734,8 +958,6 @@
                 ctx2d.closePath();
                 ctx2d.fillStyle = "rgba(58,134,255,0.10)";
                 ctx2d.fill();
-
-                // line
                 ctx2d.beginPath();
                 ctx2d.moveTo(toX(0), toY(vals[0]));
                 for (let i = 1; i < points; i++)
@@ -754,18 +976,11 @@
             async function connectSpeaker() {
                 ensureAudio();
                 try {
-                    if (
-                        navigator.mediaDevices &&
-                        "selectAudioOutput" in navigator.mediaDevices
-                    ) {
-                        const device =
-                            await navigator.mediaDevices.selectAudioOutput();
+                    if (navigator.mediaDevices && "selectAudioOutput" in navigator.mediaDevices) {
+                        const device = await navigator.mediaDevices.selectAudioOutput();
                         if (device && device.deviceId && mediaOutEl.setSinkId) {
                             await mediaOutEl.setSinkId(device.deviceId);
-                            setBtStatus(
-                                true,
-                                device.label || "出力デバイス選択済み",
-                            );
+                            setBtStatus(true, device.label || "出力デバイス選択済み");
                             return;
                         }
                     }
@@ -774,29 +989,22 @@
                         setBtStatus(true, "既定の出力に設定しました");
                     } else {
                         setBtStatus(false, "出力先選択は非対応");
-                        alert(
-                            "このブラウザでは出力デバイスの直接選択に未対応です。OSのBluetooth設定またはブラウザの音声出力設定からスピーカーを選択してください。",
-                        );
+                        alert("このブラウザでは出力デバイスの直接選択に未対応です。OSのBluetooth設定またはブラウザの音声出力設定からスピーカーを選択してください。");
                     }
                 } catch (e) {
                     console.error(e);
                     setBtStatus(false, "接続に失敗");
-                    alert(
-                        "出力デバイスの選択に失敗しました。権限や接続状態をご確認ください。",
-                    );
+                    alert("出力デバイスの選択に失敗しました。権限や接続状態をご確認ください。");
                 }
             }
+
             function setBtStatus(connected, tip) {
                 btDot.classList.toggle("ok", connected);
                 btDot.classList.toggle("ng", !connected);
                 btLabel.textContent = connected ? "接続済み" : "未接続";
                 const chip = btLabel.closest(".bt-chip");
                 if (chip)
-                    chip.title =
-                        tip ||
-                        (connected
-                            ? "音声出力がスピーカーに設定されました"
-                            : "対応ブラウザで出力デバイスを選択できます");
+                    chip.title = tip || (connected ? "音声出力がスピーカーに設定されました" : "対応ブラウザで出力デバイスを選択できます");
             }
             connectBtn.addEventListener("click", connectSpeaker);
 
@@ -804,9 +1012,7 @@
                 stopSound();
             });
 
-            // ページ読み込み時に音声ファイルをプリロード
             window.addEventListener("DOMContentLoaded", () => {
-                // バックグラウンドで音声ファイルを読み込む（エラーは無視）
                 preloadAudioFiles().catch(error => {
                     console.warn('音声ファイルのプリロードに一部失敗しました:', error);
                 });
