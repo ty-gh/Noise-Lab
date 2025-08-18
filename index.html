@@ -5,14 +5,14 @@
             name="viewport"
             content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#e0e0e0" />
+        <meta name="theme-color" content="#f0f0f0" />
         <title>防音窓実験室 Noise Lab</title>
         <style>
             :root {
-                --bg: #e0e0e0;
-                --text: #444;
-                --muted: #7a7a7a;
-                --shadow-dark: #bebebe;
+                --bg: #f0f0f0;
+                --text: #333;
+                --muted: #666;
+                --shadow-dark: #d0d0d0;
                 --shadow-light: #ffffff;
                 --accent: #3a86ff;
                 --ok: #33c27f;
@@ -126,7 +126,7 @@
                 font-size: 20px;
                 font-weight: 700;
                 letter-spacing: 0.2px;
-                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.8);
             }
             .topbar .spacer {
                 flex: 1 1 auto;
@@ -171,12 +171,12 @@
             .bt-chip .lbl {
                 font-size: 12px;
                 font-weight: 600;
-                color: #444;
+                color: #333;
             }
             .bt-chip .btn {
                 appearance: none;
                 border: 0;
-                background: linear-gradient(145deg, #e7e7e7, #d9d9d9);
+                background: linear-gradient(145deg, #f5f5f5, #e8e8e8);
                 border-radius: 999px;
                 padding: 5px 8px;
                 font-size: 12px;
@@ -202,58 +202,6 @@
                 outline-offset: 2px;
             }
 
-            /* Metrics: single row (dB chip + subtle sparkline) */
-            .metrics {
-                display: grid;
-                grid-template-columns: auto 1fr;
-                gap: 10px;
-                align-items: center;
-                padding: 8px 10px;
-            }
-            .db-chip {
-                display: grid;
-                gap: 4px;
-                padding: 10px 12px;
-                min-width: 200px;
-                justify-items: center;
-            }
-            .db-chip .label {
-                font-size: 11px;
-                color: var(--muted);
-            }
-            .db-chip .value {
-                font-variant-numeric: tabular-nums;
-                font-weight: 800;
-                font-size: 30px;
-                line-height: 1.1;
-                color: #3f3f3f;
-                text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.7);
-            }
-            .spark {
-                padding: 8px 10px;
-                display: grid;
-                align-items: center;
-            }
-            canvas#spectrum {
-                width: 100%;
-                height: 56px;
-                display: block;
-                border-radius: 10px;
-                opacity: 0.7;
-            }
-            @media (max-width: 560px) {
-                .metrics {
-                    grid-template-columns: 1fr;
-                }
-                .db-chip {
-                    min-width: 0;
-                }
-            }
-            @media (min-width: 900px) and (orientation: landscape) {
-                canvas#spectrum {
-                    height: 68px;
-                }
-            }
 
             /* Sound panel (main 7割)。影崩れ防止のため十分な内側余白を確保 */
             .sound-panel {
@@ -264,12 +212,12 @@
             }
             .sound-scroll {
                 overflow: auto;
-                padding: 16px; /* 外周に余白を設け、ボタンのbox-shadowが切れないようにする */
+                padding: 20px; /* より余裕のある余白でグロー効果も考慮 */
             }
             .grid {
                 display: grid;
-                gap: 16px;
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 20px;
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
                 align-items: start;
             }
 
@@ -329,15 +277,17 @@
                 --sound-glow: var(--traffic-glow);
             }
             
-            /* 再生状態時の色変化とグロー効果 */
+            /* 再生状態時の色変化とグロー効果（強化版） */
             .nm-btn.is-active {
                 background: linear-gradient(145deg, 
-                    color-mix(in srgb, var(--sound-base) 15%, var(--bg) 85%), 
-                    color-mix(in srgb, var(--sound-active) 10%, var(--bg) 90%));
+                    color-mix(in srgb, var(--sound-base) 20%, var(--bg) 80%), 
+                    color-mix(in srgb, var(--sound-active) 15%, var(--bg) 85%));
                 box-shadow:
                     inset 6px 6px 12px var(--shadow-dark),
                     inset -6px -6px 12px var(--shadow-light),
-                    0 0 20px var(--sound-glow);
+                    0 0 30px var(--sound-glow),
+                    0 0 60px color-mix(in srgb, var(--sound-glow) 50%, transparent);
+                animation: pulse-glow 2s ease-in-out infinite;
             }
             
             /* 音量連動グロー */
@@ -407,6 +357,23 @@
                 }
             }
             
+            @keyframes pulse-glow {
+                0%, 100% {
+                    box-shadow:
+                        inset 6px 6px 12px var(--shadow-dark),
+                        inset -6px -6px 12px var(--shadow-light),
+                        0 0 30px var(--sound-glow),
+                        0 0 60px color-mix(in srgb, var(--sound-glow) 30%, transparent);
+                }
+                50% {
+                    box-shadow:
+                        inset 6px 6px 12px var(--shadow-dark),
+                        inset -6px -6px 12px var(--shadow-light),
+                        0 0 40px var(--sound-glow),
+                        0 0 80px color-mix(in srgb, var(--sound-glow) 60%, transparent);
+                }
+            }
+            
             @keyframes ripple-animation {
                 0% {
                     transform: scale(0);
@@ -462,16 +429,16 @@
                 gap: 6px;
             }
             .sound-btn .icon {
-                width: 48px;
-                height: 48px;
+                width: 56px;
+                height: 56px;
                 display: grid;
                 place-items: center;
-                font-size: 32px;
+                font-size: 36px;
                 line-height: 1;
                 background-size: contain;
                 background-repeat: no-repeat;
                 background-position: center;
-                border-radius: 8px;
+                border-radius: 10px;
                 background-color: transparent;
                 opacity: 0.85;
                 transition: opacity 0.2s ease;
@@ -525,7 +492,7 @@
             /* 画像が正常に読み込まれた場合は絵文字を非表示 */
             .sound-btn .icon[data-sound]:after {
                 position: absolute;
-                font-size: 28px;
+                font-size: 32px;
                 opacity: 0;
                 z-index: -1;
                 transition: opacity 0.2s ease;
@@ -546,30 +513,113 @@
                 text-overflow: ellipsis;
             }
             
-            /* 各ボタン内の波形表示領域 */
+            /* 各ボタン内の波形表示領域（強化版） */
             .sound-btn .mini-wave {
                 width: 100%;
-                height: 16px;
-                border-radius: 8px;
+                height: 28px;
+                border-radius: 10px;
                 background: var(--bg);
                 box-shadow:
-                    inset 3px 3px 6px var(--shadow-dark),
-                    inset -3px -3px 6px var(--shadow-light);
+                    inset 4px 4px 8px var(--shadow-dark),
+                    inset -4px -4px 8px var(--shadow-light);
                 overflow: hidden;
                 position: relative;
                 opacity: 0;
-                transition: opacity 0.3s ease;
+                transition: 
+                    opacity 0.4s ease,
+                    height 0.3s ease,
+                    box-shadow 0.3s ease;
             }
             
             .nm-btn.is-active .mini-wave {
                 opacity: 1;
+                height: 32px;
+                box-shadow:
+                    inset 4px 4px 8px var(--shadow-dark),
+                    inset -4px -4px 8px var(--shadow-light),
+                    0 0 8px var(--sound-glow);
             }
             
             .mini-wave canvas {
                 width: 100%;
                 height: 100%;
                 display: block;
-                border-radius: 6px;
+                border-radius: 8px;
+            }
+            
+            /* dB値のオーバーレイ表示（ボタンの右上角） */
+            .db-overlay {
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                font-size: 12px;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.98);
+                background: rgba(0, 0, 0, 0.6);
+                padding: 4px 8px;
+                border-radius: 8px;
+                backdrop-filter: blur(4px);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+                z-index: 3;
+                min-width: 40px;
+                text-align: center;
+                line-height: 1.2;
+                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 
+                    0 3px 6px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+            
+            /* 再生中のみdB値を表示 */
+            .nm-btn.is-active .db-overlay {
+                opacity: 1;
+            }
+            
+            /* 音源別のdB表示色調整（各音源の特徴色を活用） */
+            .nm-btn[data-sound="voice"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(255, 107, 107, 0.85), rgba(255, 107, 107, 0.65));
+                border-color: rgba(255, 107, 107, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(255, 107, 107, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            }
+            .nm-btn[data-sound="tv"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(78, 205, 196, 0.85), rgba(78, 205, 196, 0.65));
+                border-color: rgba(78, 205, 196, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(78, 205, 196, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            }
+            .nm-btn[data-sound="construction"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(255, 167, 38, 0.85), rgba(255, 167, 38, 0.65));
+                border-color: rgba(255, 167, 38, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(255, 167, 38, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            }
+            .nm-btn[data-sound="laundry"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(171, 71, 188, 0.85), rgba(171, 71, 188, 0.65));
+                border-color: rgba(171, 71, 188, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(171, 71, 188, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            }
+            .nm-btn[data-sound="rain"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(66, 165, 245, 0.85), rgba(66, 165, 245, 0.65));
+                border-color: rgba(66, 165, 245, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(66, 165, 245, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            }
+            .nm-btn[data-sound="traffic"].is-active .db-overlay {
+                background: linear-gradient(135deg, rgba(102, 187, 106, 0.85), rgba(102, 187, 106, 0.65));
+                border-color: rgba(102, 187, 106, 0.4);
+                box-shadow: 
+                    0 3px 8px rgba(102, 187, 106, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
             }
 
             footer.note {
@@ -624,12 +674,12 @@
                     padding: 12px;
                 }
                 .sound-btn .icon {
-                    width: 40px;
-                    height: 40px;
+                    width: 44px;
+                    height: 44px;
                     background-size: contain;
                 }
                 .sound-btn .icon[data-sound]:after {
-                    font-size: 24px;
+                    font-size: 26px;
                 }
                 .sound-btn .title {
                     font-size: 12px;
@@ -637,22 +687,59 @@
                 .sound-btn .mini-wave {
                     height: 12px; /* モバイルでは波形を小さく */
                 }
+                
+                /* モバイルでのdB表示サイズ調整 */
+                .db-overlay {
+                    font-size: 11px;
+                    padding: 3px 6px;
+                    min-width: 36px;
+                    top: 3px;
+                    right: 3px;
+                }
             }
             
             /* タブレット向け最適化 */
             @media (min-width: 768px) and (max-width: 1024px) {
+                .sound-btn .icon {
+                    width: 52px;
+                    height: 52px;
+                }
+                .sound-btn .icon[data-sound]:after {
+                    font-size: 30px;
+                }
                 .sound-btn .mini-wave {
-                    height: 18px; /* タブレットでは少し大きく */
+                    height: 30px; /* タブレットでは波形を大きく */
+                }
+                .nm-btn.is-active .mini-wave {
+                    height: 36px;
                 }
                 .grid {
-                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 24px;
+                }
+                .sound-scroll {
+                    padding: 24px;
                 }
             }
             
             /* 大画面向け */
             @media (min-width: 1200px) {
+                .sound-btn .icon {
+                    width: 60px;
+                    height: 60px;
+                }
+                .sound-btn .icon[data-sound]:after {
+                    font-size: 36px;
+                }
                 .sound-btn .mini-wave {
-                    height: 20px; /* デスクトップでは最大サイズ */
+                    height: 32px; /* デスクトップでは最大サイズ */
+                }
+                .nm-btn.is-active .mini-wave {
+                    height: 40px;
+                }
+                .grid {
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 28px;
                 }
             }
         </style>
@@ -677,20 +764,6 @@
                 </div>
             </header>
 
-            <!-- dB + スパークライン（横並び、控えめ） -->
-            <section class="nm-raised metrics" aria-label="音量とスペクトラム">
-                <div class="nm-inset db-chip">
-                    <div class="label">相対音量 [dBFS]</div>
-                    <div id="dbValue" class="value">--.- dB</div>
-                </div>
-                <div class="nm-inset spark">
-                    <canvas
-                        id="spectrum"
-                        aria-label="スペクトラム（参考表示）"
-                        role="img"
-                    ></canvas>
-                </div>
-            </section>
 
             <!-- メイン：再生ボタン（約7割） -->
             <section
@@ -705,6 +778,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="voice" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="voice" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">話し声</div>
@@ -719,6 +793,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="tv" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="tv" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">テレビ音</div>
@@ -733,6 +808,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="construction" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="construction" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">工事音</div>
@@ -747,6 +823,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="laundry" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="laundry" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">洗濯機</div>
@@ -761,6 +838,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="rain" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="rain" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">雨音</div>
@@ -775,6 +853,7 @@
                             aria-pressed="false"
                         >
                             <div class="ripple-container"></div>
+                            <div class="db-overlay" data-db="traffic" aria-hidden="true">-∞</div>
                             <div class="icon" data-sound="traffic" aria-hidden="true"></div>
                             <div class="text">
                                 <div class="title">交通騒音</div>
@@ -804,6 +883,12 @@
             // 個別音源の波形表示管理
             let miniWaveCanvases = new Map(); // soundName -> { canvas, ctx, dataArray }
             let miniWaveData = new Map(); // soundName -> frequencyData
+            
+            // 個別音源のdB表示管理
+            let dbDisplayElements = new Map(); // soundName -> dbElement
+            
+            // 継続的波紋効果管理
+            let continuousRipples = new Map(); // soundName -> intervalId
 
             function ensureAudio() {
                 if (audioCtx) return;
@@ -1024,44 +1109,55 @@
             }
             
             // リップル効果の実装
-            function createRipple(btn, event) {
+            function createRipple(btn, event, options = {}) {
                 const soundName = btn.dataset.sound;
                 const soundColor = waveStyles[soundName]?.color || '#3a86ff';
                 const rippleContainer = btn.querySelector('.ripple-container');
                 
                 if (!rippleContainer) return;
                 
-                // タッチ/クリック位置を取得
                 const rect = btn.getBoundingClientRect();
-                let clientX, clientY;
+                let x, y;
                 
-                if (event.type === 'touchstart' && event.touches && event.touches[0]) {
-                    clientX = event.touches[0].clientX;
-                    clientY = event.touches[0].clientY;
-                } else if (event.clientX !== undefined) {
-                    clientX = event.clientX;
-                    clientY = event.clientY;
+                if (options.randomPosition) {
+                    // 中心位置（継続波紋用）
+                    x = rect.width / 2;
+                    y = rect.height / 2;
                 } else {
-                    // フォールバック: ボタン中央
-                    clientX = rect.left + rect.width / 2;
-                    clientY = rect.top + rect.height / 2;
+                    // タッチ/クリック位置を取得
+                    let clientX, clientY;
+                    
+                    if (event && event.type === 'touchstart' && event.touches && event.touches[0]) {
+                        clientX = event.touches[0].clientX;
+                        clientY = event.touches[0].clientY;
+                    } else if (event && event.clientX !== undefined) {
+                        clientX = event.clientX;
+                        clientY = event.clientY;
+                    } else {
+                        // フォールバック: ボタン中央
+                        clientX = rect.left + rect.width / 2;
+                        clientY = rect.top + rect.height / 2;
+                    }
+                    
+                    x = clientX - rect.left;
+                    y = clientY - rect.top;
                 }
-                
-                const x = clientX - rect.left;
-                const y = clientY - rect.top;
                 
                 // リップル要素を作成
                 const ripple = document.createElement('div');
                 ripple.classList.add('ripple');
                 
                 // サイズと位置を設定
-                const size = Math.max(rect.width, rect.height) * 0.6;
+                const baseSize = Math.max(rect.width, rect.height) * 0.6;
+                const size = options.size ? baseSize * options.size : baseSize;
+                const opacity = options.opacity || 1;
+                
                 ripple.style.width = size + 'px';
                 ripple.style.height = size + 'px';
                 ripple.style.left = (x - size / 2) + 'px';
                 ripple.style.top = (y - size / 2) + 'px';
-                ripple.style.background = `radial-gradient(circle, ${soundColor}AA, ${soundColor}66 40%, transparent 70%)`;
-                ripple.style.border = `1px solid ${soundColor}88`;
+                ripple.style.background = `radial-gradient(circle, ${soundColor}${Math.floor(170 * opacity).toString(16).padStart(2, '0')}, ${soundColor}${Math.floor(102 * opacity).toString(16).padStart(2, '0')} 40%, transparent 70%)`;
+                ripple.style.border = `1px solid ${soundColor}${Math.floor(136 * opacity).toString(16).padStart(2, '0')}`;
                 
                 // コンテナに追加
                 rippleContainer.appendChild(ripple);
@@ -1072,6 +1168,62 @@
                         ripple.parentNode.removeChild(ripple);
                     }
                 }, 600);
+            }
+            
+            // 継続的波紋効果の制御
+            function startContinuousRipples(soundName) {
+                const btn = document.querySelector(`[data-sound="${soundName}"]`);
+                if (!btn) return;
+                
+                // 既存の波紋を停止
+                stopContinuousRipples(soundName);
+                
+                // 音源特性に応じた波紋間隔を設定
+                const style = waveStyles[soundName];
+                let baseInterval = 1500; // 基本間隔（ミリ秒）
+                
+                // 音源タイプに応じて間隔調整
+                switch (style?.type) {
+                    case 'spikes': // 工事音
+                        baseInterval = 800;
+                        break;
+                    case 'bars': // 話し声・交通騒音
+                        baseInterval = 1200;
+                        break;
+                    case 'dots': // 雨音
+                        baseInterval = 2000;
+                        break;
+                    case 'curve': // テレビ・洗濯機
+                        baseInterval = 1600;
+                        break;
+                }
+                
+                const intervalId = setInterval(() => {
+                    // 音量に応じた波紋の強度を計算
+                    const volumeLevel = soundVolumeData.get(soundName) || 0.3;
+                    const intensity = 0.3 + volumeLevel * 0.7; // 0.3-1.0の範囲
+                    
+                    // ランダムな変動を加える
+                    const variation = 0.8 + Math.random() * 0.4; // 0.8-1.2の範囲
+                    const finalIntensity = Math.min(1, intensity * variation);
+                    
+                    // 波紋を生成
+                    createRipple(btn, null, {
+                        randomPosition: true,
+                        size: 0.4 + finalIntensity * 0.4, // サイズ調整
+                        opacity: 0.4 + finalIntensity * 0.4 // 透明度調整
+                    });
+                }, baseInterval + Math.random() * 400 - 200); // ±200msのランダム変動
+                
+                continuousRipples.set(soundName, intervalId);
+            }
+            
+            function stopContinuousRipples(soundName) {
+                const intervalId = continuousRipples.get(soundName);
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    continuousRipples.delete(soundName);
+                }
             }
             
             // オーラ効果の動的制御
@@ -1125,6 +1277,17 @@
                 });
             }
             
+            // dB表示要素の初期化
+            function initDBDisplayElements() {
+                const sounds = ['voice', 'tv', 'construction', 'laundry', 'rain', 'traffic'];
+                sounds.forEach(soundName => {
+                    const dbElement = document.querySelector(`[data-db="${soundName}"]`);
+                    if (dbElement) {
+                        dbDisplayElements.set(soundName, dbElement);
+                    }
+                });
+            }
+            
             // 音源特性別の波形描画スタイル定義
             const waveStyles = {
                 voice: {
@@ -1134,7 +1297,7 @@
                     smoothing: 0.7
                 },
                 tv: {
-                    type: 'curve',
+                    type: 'bars',
                     color: '#4ecdc4',
                     intensity: 0.8,
                     smoothing: 0.6
@@ -1146,13 +1309,13 @@
                     smoothing: 0.3
                 },
                 laundry: {
-                    type: 'curve',
+                    type: 'bars',
                     color: '#ab47bc',
                     intensity: 0.9,
                     smoothing: 0.8
                 },
                 rain: {
-                    type: 'dots',
+                    type: 'bars',
                     color: '#42a5f5',
                     intensity: 0.7,
                     smoothing: 0.9
@@ -1164,6 +1327,44 @@
                     smoothing: 0.5
                 }
             };
+            
+            // 個別音源のdB計算
+            function calculateSoundDB(soundName) {
+                const soundInstance = activeSounds.get(soundName);
+                if (!soundInstance) return null;
+                
+                const { analyser } = soundInstance;
+                const timeArr = new Float32Array(analyser.fftSize);
+                analyser.getFloatTimeDomainData(timeArr);
+                
+                // RMS値計算
+                let sum = 0;
+                for (let i = 0; i < timeArr.length; i++) {
+                    sum += timeArr[i] * timeArr[i];
+                }
+                const rms = Math.sqrt(sum / timeArr.length) || 1e-9;
+                
+                // dBFS計算（-60dBFS ～ 0dBFS の範囲）
+                const dbfs = 20 * Math.log10(rms);
+                return Math.max(-60, Math.min(0, dbfs));
+            }
+            
+            // 個別音源のdB表示更新
+            function updateSoundDBDisplay(soundName, dbValue) {
+                const dbElement = dbDisplayElements.get(soundName);
+                if (!dbElement) return;
+                
+                if (dbValue !== null) {
+                    // dB値を整数で表示（-∞ の場合は特別処理）
+                    if (dbValue <= -60) {
+                        dbElement.textContent = '-∞';
+                    } else {
+                        dbElement.textContent = Math.round(dbValue) + 'dB';
+                    }
+                } else {
+                    dbElement.textContent = '-∞';
+                }
+            }
             
             // 個別音源の波形描画
             function drawMiniWave(soundName) {
@@ -1197,6 +1398,10 @@
                         drawDots(ctx, dataArray, width, height, style);
                         break;
                 }
+                
+                // dB値の計算と表示
+                const dbValue = calculateSoundDB(soundName);
+                updateSoundDBDisplay(soundName, dbValue);
             }
             
             // バー形式の波形描画（話し声・交通騒音）
@@ -1381,6 +1586,8 @@
                         btn.style.setProperty('--dynamic-glow-opacity', '0');
                         // オーラ効果を無効化
                         updateAuraEffect(kind, false);
+                        // 継続波紋を停止
+                        stopContinuousRipples(kind);
                     } else {
                         // 新しい音源を開始
                         try {
@@ -1392,6 +1599,8 @@
                                 btn.style.setProperty('--dynamic-glow-opacity', '0.3');
                                 // オーラ効果を有効化
                                 updateAuraEffect(kind, true);
+                                // 継続波紋を開始
+                                startContinuousRipples(kind);
                             }
                         } catch (error) {
                             console.error('音声再生エラー:', error);
@@ -1399,42 +1608,18 @@
                             btn.setAttribute("aria-pressed", "false");
                             btn.style.setProperty('--dynamic-glow-opacity', '0');
                             updateAuraEffect(kind, false);
+                            stopContinuousRipples(kind);
                             alert('音声の再生に失敗しました。ブラウザのコンソールで詳細を確認してください。');
                         }
                     }
                 });
             });
 
-            // dB + subtle sparkline
-            const dbEl = document.getElementById("dbValue");
-            const canvas = document.getElementById("spectrum");
-            const ctx2d = canvas.getContext("2d");
-
-            function resizeCanvas() {
-                const dpr = window.devicePixelRatio || 1;
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = Math.floor(rect.width * dpr);
-                canvas.height = Math.floor(rect.height * dpr);
-                ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-            }
-            new ResizeObserver(resizeCanvas).observe(canvas);
-            resizeCanvas();
+            // メインスペクトラム表示は削除（ボタン内波形のみ残す）
 
             function draw() {
                 requestAnimationFrame(draw);
-                const rect = canvas.getBoundingClientRect();
-                ctx2d.clearRect(0, 0, rect.width, rect.height);
                 if (!analyser) return;
-
-                // dBFS
-                const timeArr = new Float32Array(analyser.fftSize);
-                analyser.getFloatTimeDomainData(timeArr);
-                let sum = 0;
-                for (let i = 0; i < timeArr.length; i++)
-                    sum += timeArr[i] * timeArr[i];
-                const rms = Math.sqrt(sum / timeArr.length) || 1e-9;
-                const dbfs = 20 * Math.log10(rms);
-                dbEl.textContent = `${dbfs.toFixed(1)} dB`;
 
                 // 動的色変化の更新
                 updateButtonColors();
@@ -1443,55 +1628,6 @@
                 activeSounds.forEach((soundInstance, soundName) => {
                     drawMiniWave(soundName);
                 });
-
-                // Sparkline（控えめ）
-                const bufferLength = analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                analyser.getByteFrequencyData(dataArray);
-
-                const w = rect.width,
-                    h = rect.height;
-                const points = 60;
-                const step = Math.max(1, Math.floor(bufferLength / points));
-
-                const vals = [];
-                let prev = 0;
-                for (let i = 0; i < points; i++) {
-                    let acc = 0;
-                    for (let j = 0; j < step; j++)
-                        acc += dataArray[i * step + j] || 0;
-                    let v = acc / step / 255;
-                    v = prev * 0.65 + v * 0.35;
-                    prev = v; // smooth
-                    vals.push(v);
-                }
-
-                const padX = 6,
-                    padY = 6;
-                const innerW = w - padX * 2,
-                    innerH = h - padY * 2;
-                const toX = (i) => padX + (i / (points - 1)) * innerW;
-                const toY = (v) => padY + (1 - v) * innerH * 0.85;
-
-                // area
-                ctx2d.beginPath();
-                ctx2d.moveTo(toX(0), toY(vals[0]));
-                for (let i = 1; i < points; i++)
-                    ctx2d.lineTo(toX(i), toY(vals[i]));
-                ctx2d.lineTo(toX(points - 1), h - padY);
-                ctx2d.lineTo(toX(0), h - padY);
-                ctx2d.closePath();
-                ctx2d.fillStyle = "rgba(58,134,255,0.10)";
-                ctx2d.fill();
-
-                // line
-                ctx2d.beginPath();
-                ctx2d.moveTo(toX(0), toY(vals[0]));
-                for (let i = 1; i < points; i++)
-                    ctx2d.lineTo(toX(i), toY(vals[i]));
-                ctx2d.strokeStyle = "rgba(58,134,255,0.32)";
-                ctx2d.lineWidth = 1.5;
-                ctx2d.stroke();
             }
             draw();
 
@@ -1551,12 +1687,20 @@
 
             window.addEventListener("pagehide", () => {
                 stopSound(); // 全音源停止
+                // 全継続波紋を停止
+                continuousRipples.forEach((intervalId, soundName) => {
+                    clearInterval(intervalId);
+                });
+                continuousRipples.clear();
             });
 
             // ページ読み込み時に音声ファイルをプリロード
             window.addEventListener("DOMContentLoaded", () => {
                 // ミニ波形キャンバスの初期化
                 initAllMiniWaveCanvases();
+                
+                // dB表示要素の初期化
+                initDBDisplayElements();
                 
                 // バックグラウンドで音声ファイルを読み込む（エラーは無視）
                 preloadAudioFiles().catch(error => {
