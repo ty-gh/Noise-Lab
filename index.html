@@ -218,6 +218,68 @@
                 outline: 2px solid rgba(58, 134, 255, 0.75);
                 outline-offset: 2px;
             }
+            
+            /* 音声読み込み状況チップ */
+            .loading-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 8px;
+                border-radius: 999px;
+                background: var(--bg);
+                box-shadow:
+                    6px 6px 12px var(--shadow-dark),
+                    -6px -6px 12px var(--shadow-light);
+                color: var(--muted);
+                white-space: nowrap;
+                line-height: 1;
+                margin-right: 8px;
+            }
+            .loading-chip .loading-dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                background: radial-gradient(
+                    circle at 30% 30%,
+                    #ffd8b3,
+                    #ffa726
+                );
+                box-shadow:
+                    inset 2px 2px 4px rgba(0, 0, 0, 0.08),
+                    inset -2px -2px 4px rgba(255, 255, 255, 0.8),
+                    0 0 0 2px rgba(0, 0, 0, 0.03);
+                animation: loading-pulse 1.5s ease-in-out infinite;
+            }
+            .loading-chip .loading-dot.completed {
+                background: radial-gradient(
+                    circle at 30% 30%,
+                    #b8ffd8,
+                    #33c27f
+                );
+                animation: none;
+            }
+            .loading-chip .lbl {
+                font-size: 12px;
+                font-weight: 600;
+                color: #333;
+            }
+            .loading-chip .progress {
+                font-size: 11px;
+                font-weight: 700;
+                color: var(--accent);
+                min-width: 24px;
+                text-align: center;
+            }
+            @keyframes loading-pulse {
+                0%, 100% {
+                    opacity: 0.6;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 1;
+                    transform: scale(1.1);
+                }
+            }
 
 
             /* Sound panel (main 7割)。影崩れ防止のため十分な内側余白を確保 */
@@ -476,6 +538,21 @@
                 outline: 2px solid rgba(58, 134, 255, 0.75);
                 outline-offset: 3px;
                 border-radius: 14px;
+            }
+            
+            /* ボタン無効化状態 */
+            .nm-btn:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+                pointer-events: none;
+                box-shadow:
+                    2px 2px 6px var(--shadow-dark),
+                    -2px -2px 6px var(--shadow-light);
+                transform: none;
+            }
+            
+            .nm-btn:disabled .tap-message {
+                display: none;
             }
 
             .sound-btn {
@@ -873,6 +950,12 @@
                 <img src="images/logo.png" alt="Noise Lab ロゴ" class="logo">
                 <h1>powered by ICT-PARK</h1>
                 <div class="spacer"></div>
+                <!-- 音声ファイル読み込み状況表示 -->
+                <div id="loadingStatus" class="loading-chip" aria-label="音声ファイル読み込み状況" style="display: block;">
+                    <span class="loading-dot" aria-hidden="true"></span>
+                    <span id="loadingLabel" class="lbl">音声読み込み中...</span>
+                    <span id="loadingProgress" class="progress">0/6</span>
+                </div>
                 <div class="bt-chip" aria-label="Bluetoothスピーカー接続状態">
                     <span id="btDot" class="dot ng" aria-hidden="true"></span>
                     <span id="btLabel" class="lbl">未接続</span>
@@ -897,6 +980,7 @@
                             class="nm-btn sound-btn"
                             data-sound="voice"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -915,6 +999,7 @@
                             class="nm-btn sound-btn"
                             data-sound="tv"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -932,6 +1017,7 @@
                             class="nm-btn sound-btn"
                             data-sound="construction"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -949,6 +1035,7 @@
                             class="nm-btn sound-btn"
                             data-sound="laundry"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -966,6 +1053,7 @@
                             class="nm-btn sound-btn"
                             data-sound="rain"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -983,6 +1071,7 @@
                             class="nm-btn sound-btn"
                             data-sound="traffic"
                             aria-pressed="false"
+                            disabled
                         >
                             <div class="ripple-container"></div>
                             <div class="top-row">
@@ -1014,6 +1103,14 @@
             // 複数音源同時再生管理
             let activeSounds = new Map(); // soundName -> { stopFn, gainNode, sourceNode, analyser }
             
+            // プリロード管理
+            let preloadStatus = {
+                totalFiles: 6,
+                loadedFiles: 0,
+                isComplete: false,
+                files: ['voice', 'tv', 'construction', 'laundry', 'rain', 'traffic']
+            };
+            
             // 個別音源の波形表示管理
             let miniWaveCanvases = new Map(); // soundName -> { canvas, ctx, dataArray }
             let miniWaveData = new Map(); // soundName -> frequencyData
@@ -1030,44 +1127,139 @@
             function ensureAudio() {
                 if (audioCtx) return;
                 
-                audioCtx = new (window.AudioContext ||
-                    window.webkitAudioContext)();
-                masterGain = audioCtx.createGain();
-                masterGain.gain.value = 0.9;
+                console.log('AudioContextを初期化中...');
+                
+                try {
+                    audioCtx = new (window.AudioContext ||
+                        window.webkitAudioContext)();
+                    
+                    console.log('AudioContext状態:', audioCtx.state);
+                    
+                    masterGain = audioCtx.createGain();
+                    masterGain.gain.value = 0.9;
 
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 2048;
-                analyser.smoothingTimeConstant = 0.85;
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 2048;
+                    analyser.smoothingTimeConstant = 0.85;
 
-                masterGain.connect(analyser);
+                    masterGain.connect(analyser);
 
-                dest = audioCtx.createMediaStreamDestination();
-                analyser.connect(dest);
-                mediaOutEl = new Audio();
-                mediaOutEl.autoplay = true;
-                mediaOutEl.srcObject = dest.stream;
-                mediaOutEl.play().catch(() => {});
+                    dest = audioCtx.createMediaStreamDestination();
+                    analyser.connect(dest);
+                    mediaOutEl = new Audio();
+                    mediaOutEl.autoplay = true;
+                    mediaOutEl.srcObject = dest.stream;
+                    mediaOutEl.play().catch(() => {});
+                    
+                    console.log('AudioContext初期化完了');
+                } catch (error) {
+                    console.error('AudioContext初期化エラー:', error);
+                }
             }
 
             async function loadAudioFile(url) {
                 try {
+                    console.log(`フェッチ開始: ${url}`);
                     const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    console.log(`フェッチ結果: ${response.status} ${response.statusText}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const arrayBuffer = await response.arrayBuffer();
-                    return await audioCtx.decodeAudioData(arrayBuffer);
+                    console.log(`ファイルサイズ: ${arrayBuffer.byteLength} bytes`);
+                    
+                    // AudioContextがない場合は初期化
+                    if (!audioCtx) {
+                        console.log('AudioContextを初期化中...');
+                        ensureAudio();
+                    }
+                    
+                    const buffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    console.log(`デコード成功: ${buffer.duration.toFixed(2)}秒`);
+                    return buffer;
                 } catch (error) {
                     console.error(`音声ファイルの読み込みに失敗: ${url}`, error);
                     return null;
                 }
             }
 
-            async function preloadAudioFiles() {
-                const sounds = ['voice', 'tv', 'construction', 'laundry', 'rain', 'traffic'];
-                const promises = sounds.map(async (sound) => {
-                    const buffer = await loadAudioFile(`sounds/${sound}.mp3`);
-                    if (buffer) audioBuffers[sound] = buffer;
+            // プリロード状況を更新する関数
+            function updatePreloadStatus() {
+                const loadingLabel = document.getElementById('loadingLabel');
+                const loadingProgress = document.getElementById('loadingProgress');
+                const loadingDot = document.querySelector('.loading-dot');
+                const loadingChip = document.getElementById('loadingStatus');
+                
+                if (!loadingLabel || !loadingProgress || !loadingDot || !loadingChip) return;
+                
+                loadingProgress.textContent = `${preloadStatus.loadedFiles}/${preloadStatus.totalFiles}`;
+                
+                if (preloadStatus.isComplete) {
+                    loadingLabel.textContent = '音声準備完了!';
+                    loadingDot.classList.add('completed');
+                    
+                    // 2秒後にローディングチップを非表示
+                    setTimeout(() => {
+                        loadingChip.style.display = 'none';
+                    }, 2000);
+                    
+                    // すべての再生ボタンを有効化
+                    enableAllSoundButtons();
+                }
+            }
+            
+            // すべての再生ボタンを有効化
+            function enableAllSoundButtons() {
+                const buttons = document.querySelectorAll('.sound-btn');
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.cursor = 'pointer';
+                    btn.style.opacity = '1';
+                    
+                    // 「ここをタップ！」メッセージを表示
+                    const tapMessage = btn.querySelector('.tap-message');
+                    if (tapMessage) {
+                        tapMessage.style.opacity = '';
+                        tapMessage.style.visibility = '';
+                    }
                 });
-                await Promise.all(promises);
+            }
+            
+            // プリロード用の非同期関数（個別追跡版）
+            async function preloadAudioFiles() {
+                console.log('音声ファイルのプリロードを開始します...');
+                
+                // 各ファイルを順番に読み込んで進捗を表示
+                for (const sound of preloadStatus.files) {
+                    try {
+                        console.log(`読み込み中: ${sound}.mp3`);
+                        const buffer = await loadAudioFile(`sounds/${sound}.mp3`);
+                        
+                        if (buffer) {
+                            audioBuffers[sound] = buffer;
+                            preloadStatus.loadedFiles++;
+                            console.log(`成功: ${sound}.mp3 (進捗: ${preloadStatus.loadedFiles}/${preloadStatus.totalFiles})`);
+                            updatePreloadStatus();
+                        } else {
+                            console.warn(`音声ファイルの読み込みに失敗: ${sound}.mp3`);
+                            // 失敗してもカウントを進める
+                            preloadStatus.loadedFiles++;
+                            updatePreloadStatus();
+                        }
+                    } catch (error) {
+                        console.error(`エラー: ${sound}.mp3`, error);
+                        // エラーでもカウントを進める
+                        preloadStatus.loadedFiles++;
+                        updatePreloadStatus();
+                    }
+                }
+                
+                // 全ファイルの処理完了
+                preloadStatus.isComplete = true;
+                console.log('プリロード完了!');
+                updatePreloadStatus();
             }
 
             function makeBufferSource(buffer, loop = true) {
@@ -1133,7 +1325,7 @@
                 audioCtx.resume();
                 
                 // 音声ファイルがまだ読み込まれていない場合は読み込む
-                if (Object.keys(audioBuffers).length === 0) {
+                if (!preloadStatus.isComplete) {
                     await preloadAudioFiles();
                 }
                 
@@ -1752,6 +1944,12 @@
                     const kind = btn.dataset.sound;
                     const isActive = btn.classList.contains("is-active");
                     
+                    // プリロードが完了していない場合はクリックを無視
+                    if (!preloadStatus.isComplete) {
+                        console.log('音声ファイルの読み込みが完了していません');
+                        return;
+                    }
+                    
                     if (isActive) {
                         // 再生中の音源を停止
                         stopSound(kind);
@@ -1898,9 +2096,33 @@
                 // dB表示要素の初期化
                 initDBDisplayElements();
                 
-                // バックグラウンドで音声ファイルを読み込む（エラーは無視）
+                // 初期状態を表示
+                updatePreloadStatus();
+                
+                // 音声ファイルのプリロードを開始（ユーザーに状況表示）
                 preloadAudioFiles().catch(error => {
-                    console.warn('音声ファイルのプリロードに一部失敗しました:', error);
+                    console.error('音声ファイルのプリロードに失敗しました:', error);
+                    
+                    // エラー時の表示
+                    const loadingLabel = document.getElementById('loadingLabel');
+                    const loadingDot = document.querySelector('.loading-dot');
+                    const loadingProgress = document.getElementById('loadingProgress');
+                    
+                    if (loadingLabel && loadingDot && loadingProgress) {
+                        loadingLabel.textContent = '読み込みエラー';
+                        loadingDot.style.background = 'radial-gradient(circle at 30% 30%, #ffd8d8, #ff5a5f)';
+                        loadingProgress.textContent = 'エラー';
+                    }
+                    
+                    // エラーでもボタンを有効化（ユーザーが手動で試せるように）
+                    setTimeout(() => {
+                        enableAllSoundButtons();
+                        
+                        // エラーメッセージを更新
+                        if (loadingLabel) {
+                            loadingLabel.textContent = '手動でお試しください';
+                        }
+                    }, 3000);
                 });
             });
         </script>
