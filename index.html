@@ -948,7 +948,7 @@
         <div class="app">
             <header class="topbar">
                 <img src="images/logo.png" alt="Noise Lab ロゴ" class="logo">
-                <h1>powered by ICT-PARK v0.2.1</h1>
+                <h1>powered by ICT-PARK v0.2.2</h1>
                 <div class="spacer"></div>
                 <!-- 音声ファイル読み込み状況表示 -->
                 <div id="loadingStatus" class="loading-chip" aria-label="音声ファイル読み込み状況" style="display: block;">
@@ -1144,11 +1144,16 @@
 
                     masterGain.connect(analyser);
 
+                    // 直接スピーカーに出力（GitHub Pages等でも動作）
+                    analyser.connect(audioCtx.destination);
+                    
+                    // 代替出力ルート（デバイス選択用）
                     dest = audioCtx.createMediaStreamDestination();
                     analyser.connect(dest);
                     mediaOutEl = new Audio();
                     mediaOutEl.autoplay = true;
                     mediaOutEl.srcObject = dest.stream;
+                    mediaOutEl.volume = 0.1; // 音量を下げて重複再生を軽減
                     mediaOutEl.play().catch(() => {});
                     
                     console.log('AudioContext初期化完了');
@@ -2041,6 +2046,9 @@
                             await navigator.mediaDevices.selectAudioOutput();
                         if (device && device.deviceId && mediaOutEl.setSinkId) {
                             await mediaOutEl.setSinkId(device.deviceId);
+                            // MediaStream経由の音量を上げて、直接出力を下げる
+                            mediaOutEl.volume = 0.9;
+                            if (masterGain) masterGain.gain.value = 0.1;
                             setBtStatus(
                                 true,
                                 device.label || "出力デバイス選択済み",
@@ -2050,6 +2058,9 @@
                     }
                     if (mediaOutEl.setSinkId) {
                         await mediaOutEl.setSinkId("default");
+                        // デフォルト出力の場合は直接出力をメインにする
+                        mediaOutEl.volume = 0.1;
+                        if (masterGain) masterGain.gain.value = 0.9;
                         setBtStatus(true, "既定の出力に設定しました");
                     } else {
                         setBtStatus(false, "出力先選択は非対応");
