@@ -148,76 +148,6 @@
             .topbar .spacer {
                 flex: 1 1 auto;
             }
-            .bt-chip {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 6px 8px;
-                border-radius: 999px;
-                background: var(--bg);
-                box-shadow:
-                    6px 6px 12px var(--shadow-dark),
-                    -6px -6px 12px var(--shadow-light);
-                color: var(--muted);
-                white-space: nowrap;
-                line-height: 1;
-            }
-            .bt-chip .dot {
-                width: 9px;
-                height: 9px;
-                border-radius: 50%;
-                box-shadow:
-                    inset 2px 2px 4px rgba(0, 0, 0, 0.08),
-                    inset -2px -2px 4px rgba(255, 255, 255, 0.8),
-                    0 0 0 2px rgba(0, 0, 0, 0.03);
-            }
-            .bt-chip .dot.ok {
-                background: radial-gradient(
-                    circle at 30% 30%,
-                    #b8ffd8,
-                    #33c27f
-                );
-            }
-            .bt-chip .dot.ng {
-                background: radial-gradient(
-                    circle at 30% 30%,
-                    #ffd8d8,
-                    #ff5a5f
-                );
-            }
-            .bt-chip .lbl {
-                font-size: 12px;
-                font-weight: 600;
-                color: #333;
-            }
-            .bt-chip .btn {
-                appearance: none;
-                border: 0;
-                background: linear-gradient(145deg, #f5f5f5, #e8e8e8);
-                border-radius: 999px;
-                padding: 5px 8px;
-                font-size: 12px;
-                font-weight: 600;
-                color: #333;
-                cursor: pointer;
-                box-shadow:
-                    var(--shadow-sm) var(--shadow-sm) var(--shadow-md)
-                        var(--shadow-dark),
-                    calc(var(--shadow-sm) * -1) calc(var(--shadow-sm) * -1)
-                        var(--shadow-md) var(--shadow-light);
-            }
-            .bt-chip .btn:active {
-                box-shadow:
-                    inset var(--shadow-sm) var(--shadow-sm)
-                        calc(var(--shadow-sm) * 1.4) var(--shadow-dark),
-                    inset calc(var(--shadow-sm) * -1)
-                        calc(var(--shadow-sm) * -1) calc(var(--shadow-sm) * 1.4)
-                        var(--shadow-light);
-            }
-            .bt-chip .btn:focus-visible {
-                outline: 2px solid rgba(58, 134, 255, 0.75);
-                outline-offset: 2px;
-            }
             
             /* 音声読み込み状況チップ */
             .loading-chip {
@@ -956,18 +886,6 @@
                     <span id="loadingLabel" class="lbl">音声読み込み中...</span>
                     <span id="loadingProgress" class="progress">0/6</span>
                 </div>
-                <div class="bt-chip" aria-label="Bluetoothスピーカー接続状態">
-                    <span id="btDot" class="dot ng" aria-hidden="true"></span>
-                    <span id="btLabel" class="lbl">未接続</span>
-                    <button
-                        id="connectBtn"
-                        class="btn"
-                        type="button"
-                        aria-label="スピーカーに接続"
-                    >
-                        接続
-                    </button>
-                </div>
             </header>
             <!-- メイン：再生ボタン（約7割） -->
             <section
@@ -1097,7 +1015,7 @@
         <script>
             // Audio + Analyzer
             let audioCtx;
-            let masterGain, analyser, dest, mediaOutEl;
+            let masterGain, analyser;
             let audioBuffers = {};
             
             // 複数音源同時再生管理
@@ -1144,17 +1062,8 @@
 
                     masterGain.connect(analyser);
 
-                    // 直接スピーカーに出力（GitHub Pages等でも動作）
+                    // 直接スピーカーに出力
                     analyser.connect(audioCtx.destination);
-                    
-                    // 代替出力ルート（デバイス選択用）
-                    dest = audioCtx.createMediaStreamDestination();
-                    analyser.connect(dest);
-                    mediaOutEl = new Audio();
-                    mediaOutEl.autoplay = true;
-                    mediaOutEl.srcObject = dest.stream;
-                    mediaOutEl.volume = 0.1; // 音量を下げて重複再生を軽減
-                    mediaOutEl.play().catch(() => {});
                     
                     console.log('AudioContext初期化完了');
                 } catch (error) {
@@ -2031,64 +1940,6 @@
                 }
             }
 
-            // Output device selection
-            const connectBtn = document.getElementById("connectBtn");
-            const btDot = document.getElementById("btDot");
-            const btLabel = document.getElementById("btLabel");
-
-            async function connectSpeaker() {
-                try {
-                    if (
-                        navigator.mediaDevices &&
-                        "selectAudioOutput" in navigator.mediaDevices
-                    ) {
-                        const device =
-                            await navigator.mediaDevices.selectAudioOutput();
-                        if (device && device.deviceId && mediaOutEl.setSinkId) {
-                            await mediaOutEl.setSinkId(device.deviceId);
-                            // MediaStream経由の音量を上げて、直接出力を下げる
-                            mediaOutEl.volume = 0.9;
-                            if (masterGain) masterGain.gain.value = 0.1;
-                            setBtStatus(
-                                true,
-                                device.label || "出力デバイス選択済み",
-                            );
-                            return;
-                        }
-                    }
-                    if (mediaOutEl.setSinkId) {
-                        await mediaOutEl.setSinkId("default");
-                        // デフォルト出力の場合は直接出力をメインにする
-                        mediaOutEl.volume = 0.1;
-                        if (masterGain) masterGain.gain.value = 0.9;
-                        setBtStatus(true, "既定の出力に設定しました");
-                    } else {
-                        setBtStatus(false, "出力先選択は非対応");
-                        alert(
-                            "このブラウザでは出力デバイスの直接選択に未対応です。OSのBluetooth設定またはブラウザの音声出力設定からスピーカーを選択してください。",
-                        );
-                    }
-                } catch (e) {
-                    console.error(e);
-                    setBtStatus(false, "接続に失敗");
-                    alert(
-                        "出力デバイスの選択に失敗しました。権限や接続状態をご確認ください。",
-                    );
-                }
-            }
-            function setBtStatus(connected, tip) {
-                btDot.classList.toggle("ok", connected);
-                btDot.classList.toggle("ng", !connected);
-                btLabel.textContent = connected ? "接続済み" : "未接続";
-                const chip = btLabel.closest(".bt-chip");
-                if (chip)
-                    chip.title =
-                        tip ||
-                        (connected
-                            ? "音声出力がスピーカーに設定されました"
-                            : "対応ブラウザで出力デバイスを選択できます");
-            }
-            connectBtn.addEventListener("click", connectSpeaker);
 
             window.addEventListener("pagehide", () => {
                 stopSound(); // 全音源停止
