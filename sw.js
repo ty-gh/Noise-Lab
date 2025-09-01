@@ -1,7 +1,7 @@
 // Service Worker for Noise Lab PWA
-const CACHE_NAME = 'noise-lab-v1.0.2';
-const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.2';
-const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.2';
+const CACHE_NAME = 'noise-lab-v1.0.3';
+const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.3';
+const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.3';
 
 // キャッシュする静的リソース（必須ファイル）
 const STATIC_FILES = [
@@ -158,16 +158,27 @@ async function handleStaticRequest(request) {
   }
 }
 
-// 音声ファイルのリクエスト処理（Network First戦略 + バイパス）
+// 音声ファイルのリクエスト処理（Cache First戦略でオフライン対応強化）
 async function handleAudioRequest(request) {
   try {
-    // 直接ネットワークからフェッチ（キャッシュを介さず）
-    console.log(`[SW] Direct fetching audio: ${request.url}`);
-    const networkResponse = await fetch(request, { cache: 'no-store' });
+    // まずキャッシュから確認（オフライン対応優先）
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      console.log(`[SW] Audio cache hit: ${request.url}`);
+      return cachedResponse;
+    }
+
+    // キャッシュにない場合はネットワークから取得
+    console.log(`[SW] Cache miss, fetching audio from network: ${request.url}`);
+    const networkResponse = await fetch(request, { 
+      cache: 'no-store',
+      // オフライン時のタイムアウトを短く設定
+      signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined
+    });
     
     if (networkResponse.ok) {
       console.log(`[SW] Audio fetch success: ${request.url}`);
-      // 成功時は非同期でキャッシュに保存（レスポンスは即座に返す）
+      // 成功時はキャッシュに保存
       const audioCache = await caches.open(AUDIO_CACHE_NAME);
       audioCache.put(request, networkResponse.clone()).catch(err => {
         console.warn(`[SW] Failed to cache audio: ${request.url}`, err);
@@ -177,51 +188,64 @@ async function handleAudioRequest(request) {
     
     throw new Error(`Network response not ok: ${networkResponse.status}`);
   } catch (error) {
-    console.log(`[SW] Network failed, trying cache: ${request.url}`);
+    console.log(`[SW] Network failed for audio: ${request.url}`, error.message);
     
-    // ネットワークが失敗した場合はキャッシュから取得
+    // ネットワーク失敗後に再度キャッシュを確認
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
-      console.log(`[SW] Audio cache hit: ${request.url}`);
+      console.log(`[SW] Fallback to audio cache: ${request.url}`);
       return cachedResponse;
     }
     
-    // キャッシュも失敗した場合は、Service Workerをバイパス
-    console.warn(`[SW] Audio file not available, bypassing SW: ${request.url}`);
+    // 完全に失敗した場合のログ
+    console.error(`[SW] Audio file completely unavailable: ${request.url}`);
     throw error;
   }
 }
 
-// 音声ファイルのプリキャッシュ（オプション）
+// 音声ファイルのプリキャッシュ（積極的キャッシング）
 async function precacheAudioFiles() {
   try {
     const audioCache = await caches.open(AUDIO_CACHE_NAME);
-    const cachedUrls = await audioCache.keys();
-    const cachedUrlStrings = cachedUrls.map(req => req.url);
+    console.log(`[SW] Starting pre-cache for ${AUDIO_FILES.length} audio files...`);
     
-    const filesToCache = AUDIO_FILES.filter(file => {
-      const fullUrl = new URL(file, location.origin).href;
-      return !cachedUrlStrings.includes(fullUrl);
-    });
-    
-    if (filesToCache.length > 0) {
-      console.log(`[SW] Pre-caching ${filesToCache.length} audio files...`);
-      await Promise.allSettled(
-        filesToCache.map(async file => {
-          try {
-            const response = await fetch(file);
-            if (response.ok) {
-              await audioCache.put(file, response);
-              console.log(`[SW] Pre-cached audio: ${file}`);
-            }
-          } catch (err) {
-            console.warn(`[SW] Failed to pre-cache audio: ${file}`, err);
+    const results = await Promise.allSettled(
+      AUDIO_FILES.map(async file => {
+        try {
+          // 既にキャッシュされているかチェック
+          const cachedResponse = await audioCache.match(file);
+          if (cachedResponse) {
+            console.log(`[SW] Already cached: ${file}`);
+            return { file, status: 'already-cached' };
           }
-        })
-      );
-    }
+
+          // ネットワークから取得してキャッシュ
+          const response = await fetch(file, { cache: 'no-store' });
+          if (response.ok) {
+            await audioCache.put(file, response);
+            console.log(`[SW] Successfully pre-cached: ${file}`);
+            return { file, status: 'cached' };
+          } else {
+            console.warn(`[SW] Failed to fetch for pre-cache: ${file} (${response.status})`);
+            return { file, status: 'failed', error: `HTTP ${response.status}` };
+          }
+        } catch (err) {
+          console.warn(`[SW] Pre-cache error for ${file}:`, err);
+          return { file, status: 'failed', error: err.message };
+        }
+      })
+    );
+
+    // 結果をログ出力
+    const successful = results.filter(r => r.value?.status === 'cached' || r.value?.status === 'already-cached').length;
+    const failed = results.filter(r => r.value?.status === 'failed').length;
+    
+    console.log(`[SW] Pre-cache completed: ${successful} successful, ${failed} failed`);
+    
+    return { successful, failed, results };
   } catch (error) {
     console.error('[SW] Pre-caching audio files failed:', error);
+    return { successful: 0, failed: AUDIO_FILES.length, error };
   }
 }
 
