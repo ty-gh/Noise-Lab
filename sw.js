@@ -1,7 +1,7 @@
 // Service Worker for Noise Lab PWA
-const CACHE_NAME = 'noise-lab-v1.0.1';
-const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.1';
-const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.1';
+const CACHE_NAME = 'noise-lab-v1.0.2';
+const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.2';
+const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.2';
 
 // キャッシュする静的リソース（必須ファイル）
 const STATIC_FILES = [
@@ -97,7 +97,19 @@ self.addEventListener('fetch', event => {
 
   // 音声ファイルのリクエスト処理（相対パス対応）
   if (url.pathname.includes('/sounds/') || url.pathname.includes('sounds/')) {
-    event.respondWith(handleAudioRequest(event.request));
+    // 緊急時：音声ファイルを完全にService Workerから除外
+    // この場合はブラウザが直接処理（コメントアウトを外すことで有効化）
+    // return;
+    
+    // 音声ファイルは専用ハンドラで処理
+    console.log(`[SW] Audio request detected, handling: ${event.request.url}`);
+    event.respondWith(
+      handleAudioRequest(event.request).catch(() => {
+        // Service Worker処理が失敗した場合は、ブラウザに直接処理させる
+        console.log(`[SW] Fallback to browser native fetch for: ${event.request.url}`);
+        return fetch(event.request);
+      })
+    );
     return;
   }
 
@@ -146,17 +158,20 @@ async function handleStaticRequest(request) {
   }
 }
 
-// 音声ファイルのリクエスト処理（Network First戦略）
+// 音声ファイルのリクエスト処理（Network First戦略 + バイパス）
 async function handleAudioRequest(request) {
   try {
-    // まずネットワークから取得を試みる（最新の音声ファイル）
-    console.log(`[SW] Fetching audio: ${request.url}`);
-    const networkResponse = await fetch(request);
+    // 直接ネットワークからフェッチ（キャッシュを介さず）
+    console.log(`[SW] Direct fetching audio: ${request.url}`);
+    const networkResponse = await fetch(request, { cache: 'no-store' });
     
     if (networkResponse.ok) {
-      // 音声キャッシュに保存
+      console.log(`[SW] Audio fetch success: ${request.url}`);
+      // 成功時は非同期でキャッシュに保存（レスポンスは即座に返す）
       const audioCache = await caches.open(AUDIO_CACHE_NAME);
-      audioCache.put(request, networkResponse.clone());
+      audioCache.put(request, networkResponse.clone()).catch(err => {
+        console.warn(`[SW] Failed to cache audio: ${request.url}`, err);
+      });
       return networkResponse;
     }
     
@@ -171,7 +186,8 @@ async function handleAudioRequest(request) {
       return cachedResponse;
     }
     
-    console.error(`[SW] Audio file not available: ${request.url}`, error);
+    // キャッシュも失敗した場合は、Service Workerをバイパス
+    console.warn(`[SW] Audio file not available, bypassing SW: ${request.url}`);
     throw error;
   }
 }
