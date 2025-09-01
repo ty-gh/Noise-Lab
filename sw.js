@@ -1,14 +1,15 @@
 // Service Worker for Noise Lab PWA
-const CACHE_NAME = 'noise-lab-v1.0.0';
-const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.0';
-const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.0';
+const CACHE_NAME = 'noise-lab-v1.0.1';
+const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.1';
+const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.1';
 
 // キャッシュする静的リソース（必須ファイル）
 const STATIC_FILES = [
   './',
   './index.html',
   './manifest.json',
-  './images/logo.png'
+  './images/logo.png',
+  './app-icon.png'
 ];
 
 // 音声ファイル（大容量のため別キャッシュ）
@@ -94,8 +95,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 音声ファイルのリクエスト処理
-  if (url.pathname.startsWith('/sounds/')) {
+  // 音声ファイルのリクエスト処理（相対パス対応）
+  if (url.pathname.includes('/sounds/') || url.pathname.includes('sounds/')) {
     event.respondWith(handleAudioRequest(event.request));
     return;
   }
@@ -131,7 +132,14 @@ async function handleStaticRequest(request) {
     // オフライン時のフォールバック
     if (request.url.includes('index.html') || request.url.endsWith('/')) {
       const cache = await caches.open(STATIC_CACHE_NAME);
-      return cache.match('./index.html');
+      // まず ./index.html を試し、なければ ./ を試す
+      let fallbackResponse = await cache.match('./index.html');
+      if (!fallbackResponse) {
+        fallbackResponse = await cache.match('./');
+      }
+      if (fallbackResponse) {
+        return fallbackResponse;
+      }
     }
     
     throw error;
