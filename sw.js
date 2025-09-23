@@ -1,7 +1,7 @@
 // Service Worker for Noise Lab PWA
-const CACHE_NAME = 'noise-lab-v1.0.3';
-const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.3';
-const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.3';
+const CACHE_NAME = 'noise-lab-v1.0.4';
+const STATIC_CACHE_NAME = 'noise-lab-static-v1.0.4';
+const AUDIO_CACHE_NAME = 'noise-lab-audio-v1.0.4';
 
 // キャッシュする静的リソース（必須ファイル）
 const STATIC_FILES = [
@@ -9,7 +9,7 @@ const STATIC_FILES = [
   './index.html',
   './manifest.json',
   './images/logo.png',
-  './app-icon.png'
+  './images/app-icon.png'
 ];
 
 // 音声ファイル（大容量のため別キャッシュ）
